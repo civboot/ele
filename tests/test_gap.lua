@@ -1,6 +1,6 @@
 
 require'civ':grequire()
-grequire'buf'
+grequire'gap'
 
 test('set', nil, function()
   local g = Gap.new('ab\nc\n\nd')
