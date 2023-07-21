@@ -1,8 +1,7 @@
 -- Copyright (c) 2022 Phil Leblanc  BSD License github.com/philanc/ple
-
-------------------------------------------------------------------------
+-- This file has been modified by Rett Berg for civboot. All modificaitons are
+-- in the public domain (the original license is preserved)
 --[[
-
 plterm - Pure Lua ANSI Terminal functions - unix only
 
 This module assumes that
@@ -344,7 +343,7 @@ term.getcurpos = function()
   return tonumber(n), tonumber(m)
 end
 
-term.getscrlc = function()
+term.dimensions = function()
   -- return current screen dimensions (line, coloumn as integers)
   term.save()
   term.down(999); term.right(999)
