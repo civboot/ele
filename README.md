@@ -72,3 +72,8 @@ some error you want to see is here for example
 -- ERR: /tmp/shrm/akjbska-err
 ```
 
+## Inspiration
+The text editor [ple](https://github.com/philanc/ple/tree/master) was
+inspirational due to it's simplicity and small size. shrm directly forked
+it's `plterm.lua` file for getting started quickly.
+
