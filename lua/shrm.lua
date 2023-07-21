@@ -6,6 +6,8 @@ local posix = require'posix'
 
 local yld = coroutine.yield
 
+local shrm = {} -- module
+
 
 local DRAW_PERIOD = Duration(0.03)
 local MODE = { command='command', insert='insert' }
@@ -38,6 +40,12 @@ local Buffer = struct('Buffer', {
   -- recorded changes from update
   {'changes', List}, {'changeI', Num}, -- undo/redo
 })
+method(Buffer, 'new', function()
+  return Buffer{
+    gap=gap.Gap(), l=1, c=1,
+    changes=List{}, changI=0,
+  }
+end)
 
 local function event(key)
   return {key=key}
@@ -45,7 +53,8 @@ end
 
 local Shrm = struct('Shrm', {
   {'mode', Str}, -- the UI mode (command, insert)
-  {'buffers', List},
+  {'buffers', List}, {'bufferI', Num},
+  {'epoch', nil, shix.epoch},
   {'start', Epoch}, {'lastDraw', Epoch},
 
   {'inputCo'}, {'updateCo'}, {'drawCo'},
@@ -53,6 +62,18 @@ local Shrm = struct('Shrm', {
   -- events from inputCo (LL)
   {'events'},
 })
+method(Shrm, 'new', function()
+  local sh = {
+    mode='command',
+    buffers=List{Buffer.new()}, bufferI=1,
+    start=Epoch(0), lastDraw=Epoch(0),
+    inputCo=nil,
+  }
+  sh.inputCo  = term.input()
+  sh.updateCo = coroutine.create(shrmUpdate, sh)
+  sh.drawCo   = coroutine.create(shrmDraw,   sh)
+  return setmetatable(sh, Shrm)
+end)
 method(Shrm, 'spent', function(self)
   return shlx.epopch() - self.start
 end)
@@ -111,5 +132,10 @@ end)
 
 method(Shrm, 'app', function(self)
   enterRawMode()
-  while true do self.step end
+  while true do self.step() end
 end)
+
+update(shrm, {
+  Shrm=Shrm,
+})
+return shrm

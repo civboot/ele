@@ -211,102 +211,100 @@ local seq = {
 
 local getcode = function() return byte(io.read(1)) end
 
+-- create this with coroutine.create(term.input)
+-- return a "read next key" function that can be used in a loop
+-- the "next" function blocks until a key is read
+-- it returns ascii or unicode code for all regular keys,
+-- or a key code for special keys (see term.keys)
 term.input = function()
-  -- return a "read next key" function that can be used in a loop
-  -- the "next" function blocks until a key is read
-  -- it returns ascii or unicode code for all regular keys,
-  -- or a key code for special keys (see term.keys)
-  return coroutine.wrap(function()
-    local c, c1, c2, ci, s, u
-    while true do
-    c = getcode()
-    ::restart::
-    if UTF8 and (c & 0xc0 == 0xc0) then
-      -- utf8 sequence start
-      if c & 0x20 == 0 then -- 2-byte seq
-        u = c & 0x1f
-        c = getcode()
-        u = (u << 6) | (c & 0x3f)
-        yield(u)
-        goto continue
-      elseif c & 0xf0 == 0xe0 then -- 3-byte seq
-        u = c & 0x0f
-        c = getcode()
-        u = (u << 6) | (c & 0x3f)
-        c = getcode()
-        u = (u << 6) | (c & 0x3f)
-        yield(u)
-        goto continue
-      else -- assume it is a 4-byte seq
-        u = c & 0x07
-        c = getcode()
-        u = (u << 6) | (c & 0x3f)
-        c = getcode()
-        u = (u << 6) | (c & 0x3f)
-        c = getcode()
-        u = (u << 6) | (c & 0x3f)
-        yield(u)
-        goto continue
-      end
-    end -- end utf8 sequence. continue with c.
-    if c ~= ESC then -- not an esc sequence, yield c
-      yield(c)
+local c, c1, c2, ci, s, u; while true do
+  c = getcode()
+  ::restart::
+  if UTF8 and (c & 0xc0 == 0xc0) then
+    -- utf8 sequence start
+    if c & 0x20 == 0 then -- 2-byte seq
+      u = c & 0x1f
+      c = getcode()
+      u = (u << 6) | (c & 0x3f)
+      yield(u)
+      goto continue
+    elseif c & 0xf0 == 0xe0 then -- 3-byte seq
+      u = c & 0x0f
+      c = getcode()
+      u = (u << 6) | (c & 0x3f)
+      c = getcode()
+      u = (u << 6) | (c & 0x3f)
+      yield(u)
+      goto continue
+    else -- assume it is a 4-byte seq
+      u = c & 0x07
+      c = getcode()
+      u = (u << 6) | (c & 0x3f)
+      c = getcode()
+      u = (u << 6) | (c & 0x3f)
+      c = getcode()
+      u = (u << 6) | (c & 0x3f)
+      yield(u)
       goto continue
     end
-    c1 = getcode()
-    if c1 == ESC then -- esc esc [ ... sequence
-      yield(ESC)
-      -- here c still contains ESC, read a new c1
-      c1 = getcode() -- and carry on ...
+  end -- end utf8 sequence. continue with c.
+  if c ~= ESC then -- not an esc sequence, yield c
+    yield(c)
+    goto continue
+  end
+  c1 = getcode()
+  if c1 == ESC then -- esc esc [ ... sequence
+    yield(ESC)
+    -- here c still contains ESC, read a new c1
+    c1 = getcode() -- and carry on ...
+  end
+  if c1 ~= LBR and c1 ~= LETO then -- not a valid seq
+    if UTF8 then
+      -- c1 maybe the beginning of an utf8 seq...
+      yield(c) ; c = c1 ; goto restart
+    else
+      yield(c) ; yield(c1)
+      goto continue
     end
-    if c1 ~= LBR and c1 ~= LETO then -- not a valid seq
-      if UTF8 then
-        -- c1 maybe the beginning of an utf8 seq...
-        yield(c) ; c = c1 ; goto restart
+  end
+  c2 = getcode()
+  s = char(c1, c2)
+  if c2 == LBR then -- esc[[x sequences (F1-F5 in linux console)
+    s = s .. char(getcode())
+  end
+  if seq[s] then
+    yield(seq[s])
+    goto continue
+  end
+  if not isdigitsc(c2) then
+    yield(c) ; yield(c1) ; yield(c2)
+    goto continue
+  end
+  while true do -- read until tilde '~'
+    ci = getcode()
+    s = s .. char(ci)
+    if ci == TIL then
+      if seq[s] then
+        yield(seq[s])
+        goto continue
       else
-        yield(c) ; yield(c1)
+        -- valid but unknown sequence
+        -- ignore it
+        yield(keys.unknown)
         goto continue
       end
     end
-    c2 = getcode()
-    s = char(c1, c2)
-    if c2 == LBR then -- esc[[x sequences (F1-F5 in linux console)
-      s = s .. char(getcode())
-    end
-    if seq[s] then
-      yield(seq[s])
+    if not isdigitsc(ci) then
+      -- not a valid seq.
+      -- return all the chars
+      yield(ESC)
+      for i = 1, #s do yield(byte(s, i)) end
       goto continue
     end
-    if not isdigitsc(c2) then
-      yield(c) ; yield(c1) ; yield(c2)
-      goto continue
-    end
-    while true do -- read until tilde '~'
-      ci = getcode()
-      s = s .. char(ci)
-      if ci == TIL then
-        if seq[s] then
-          yield(seq[s])
-          goto continue
-        else
-          -- valid but unknown sequence
-          -- ignore it
-          yield(keys.unknown)
-          goto continue
-        end
-      end
-      if not isdigitsc(ci) then
-        -- not a valid seq.
-        -- return all the chars
-        yield(ESC)
-        for i = 1, #s do yield(byte(s, i)) end
-        goto continue
-      end
-    end--while read until tilde '~'
-    ::continue::
-    end--coroutine while loop
-  end)--coroutine
-end--input()
+  end--while read until tilde '~'
+  ::continue::
+end--coroutine while loop
+end -- input function
 
 term.rawinput = function()
   -- return a "read next key" function that can be used in a loop
