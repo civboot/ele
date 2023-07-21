@@ -2,6 +2,15 @@
 require'civ':grequire()
 grequire'buf'
 
+test('set', nil, function()
+  local g = Gap.new('ab\nc\n\nd')
+  assertEq('ab\nc\n\nd', tostring(g))
+  assertEq({'ab', 'c', '', 'd'}, g.bot)
+  g:set(3)
+  assertEq({'ab', 'c', ''}, g.bot)
+  assertEq({'d'},           g.top)
+  assertEq('ab\nc\n\nd', tostring(g))
+end)
 
 test('insert', nil, function()
   local g = Gap.new()
@@ -40,4 +49,24 @@ test('remove', nil, function()
   g = Gap.new('ab\nc')
   r = g:remove(1, 2, 2, 1)
   assertEq('b\nc', r); assertEq('a', tostring(g));
+
+  g = Gap.new('ab\nc\n\nd')
+  assertEq('ab\nc\n\nd', tostring(g));
+  print('g.bot', #g.bot, g.bot)
+  print('g.top', #g.top, g.top)
+  r = g:remove(2, 3)
+  print('r', r)
+  print('g', g)
+  print('g.bot', #g.bot, g.bot)
+  print('g.top', #g.top, g.top)
+  assertEq(List{'c', ''}, r);
+  assertEq('ab\nd', tostring(g));
+end)
+
+test('sub', nil, function()
+  local g = Gap.new('ab\nc\n\nd')
+  assertEq({},          g:sub(1, 0))
+  assertEq({'ab'},      g:sub(1, 1))
+  assertEq({'ab', 'c'}, g:sub(1, 2))
+  assertEq('b\nc',      g:sub(1, 2, 2, 1))
 end)
