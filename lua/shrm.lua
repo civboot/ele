@@ -1,4 +1,4 @@
-local civ  = require'civ'
+local civ  = require'civ':grequire()
 local shix = require'shix'
 local term = require'plterm'
 local gap  = require'gap'
@@ -7,7 +7,6 @@ local posix = require'posix'
 local yld = coroutine.yield
 
 local shrm = {} -- module
-
 
 local DRAW_PERIOD = Duration(0.03)
 local MODE = { command='command', insert='insert' }
@@ -42,8 +41,8 @@ local Buffer = struct('Buffer', {
 })
 method(Buffer, 'new', function()
   return Buffer{
-    gap=gap.Gap(), l=1, c=1,
-    changes=List{}, changI=0,
+    gap=gap.Gap.new(), l=1, c=1,
+    changes=List{}, changeI=0,
   }
 end)
 
@@ -62,20 +61,41 @@ local Shrm = struct('Shrm', {
   -- events from inputCo (LL)
   {'events'},
 })
+
+local function shrmUpdate(shrm)
+  while true do
+    while not shrm.events.isEmpty() do
+      local spent = shrm:loopYld()
+      local ev = shrm.events.popBack()
+      _UPDATE_MODE[shrm.mode](ev)
+    end
+    yld()
+  end
+end
+
+local function shrmDraw(shrm)
+  while true do
+    local lastDraw = shix.epoch() - shrm.lastDraw
+    if DRAW_PERIOD < lastDraw then shrm:draw() end
+    yld()
+  end
+end
+
 method(Shrm, 'new', function()
   local sh = {
     mode='command',
     buffers=List{Buffer.new()}, bufferI=1,
     start=Epoch(0), lastDraw=Epoch(0),
     inputCo=nil,
+    events=LL(),
   }
-  sh.inputCo  = term.input()
-  sh.updateCo = coroutine.create(shrmUpdate, sh)
-  sh.drawCo   = coroutine.create(shrmDraw,   sh)
+  sh.inputCo  = coroutine.create(term.rawinput)
+  sh.updateCo = coroutine.create(shrmUpdate)
+  sh.drawCo   = coroutine.create(shrmDraw)
   return setmetatable(sh, Shrm)
 end)
 method(Shrm, 'spent', function(self)
-  return shlx.epopch() - self.start
+  return shix.epoch() - self.start
 end)
 method(Shrm, 'loopYld', function(self)
   local spent = self:spent()
@@ -97,45 +117,40 @@ local _UPDATE_MODE = {
   end,
 }
 
-local function shrmUpdate(shrm)
-  while true do
-    while not shrm.events.isEmpty() do
-      local spent = shrm:loopYld()
-      local ev = shrm.events.popBack()
-      _UPDATE_MODE[shrm.mode](ev)
-    end
-    yld()
-  end
-end
-
-local function shrmDraw(shrm)
-  while true do
-    local lastDraw = shlx.epoch() - shrm.lastDraw
-    if DRAW_PERIOD < lastDraw then shrm:draw() end
-    yld()
-  end
-end
-
 method(Shrm, 'step', function(self)
-  self.start = shlx.epoch()
-  local done, key = coroutine.resume(self, inputCo())
-  assert(not done); if key then
+  local running, key = coroutine.resume(self.inputCo, self)
+  if 3 == key then
+    print('\nctrl+c received, ending\n')
+    return false
+  end
+  print('got key', key)
+  assert(running); if key then
     self.events.addFront(event(key))
   end
-  assert(coroutine.resume(self.updateCo))
-  assert(coroutine.resume(self.drawCo))
-  local spent = self:spent()
-  if spent < DRAW_PERIOD then
-    shlx.sleep(DRAW_PERIOD - spent)
-  end
+  coroutine.resume(self.updateCo, self)
+  coroutine.resume(self.drawCo, self)
+  return true
 end)
 
 method(Shrm, 'app', function(self)
   enterRawMode()
-  while true do self.step() end
+  while true do
+    self.start = shix.epoch()
+    if not self:step() then break end
+    local spent = self:spent()
+    if spent < DRAW_PERIOD then
+      shix.sleep(DRAW_PERIOD - spent)
+    end
+  end
 end)
 
 update(shrm, {
   Shrm=Shrm,
 })
+
+if not civ.TESTING then
+  print"## Running shrm"
+  local sh = Shrm.new()
+  sh:app()
+end
 return shrm

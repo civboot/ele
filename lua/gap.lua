@@ -11,9 +11,8 @@
 
 local gap = {} -- module
 
-civ  = require'civ'
+require'civ':grequire()
 local sub = string.sub
-local min, strinsert = civ.min, civ.strinsert
 
 local CMAX = 999
 local Gap = struct('Gap', {
@@ -23,7 +22,7 @@ local Gap = struct('Gap', {
 method(Gap, 'new', function(s)
   local bot; if not s or type(s) == 'string' then
     bot = List{}
-    for l in civ.lines(s or '') do bot:add(l) end
+    for l in lines(s or '') do bot:add(l) end
   else
     bot = List(s)
   end
@@ -66,7 +65,7 @@ end)
 method(Gap, 'insert', function(g, s, l, c)
   g:set(l)
   local cur = g.bot:pop()
-  g:extend(civ.strinsert(cur, c or 0, s))
+  g:extend(strinsert(cur, c or 0, s))
 end)
 
 
@@ -127,7 +126,7 @@ end)
 
 -- extend onto gap. Mostly used internally
 method(Gap, 'extend', function(g, s)
-  for l in civ.lines(s) do g.bot:add(l) end
+  for l in lines(s) do g.bot:add(l) end
 end)
 
 gap.Gap = Gap

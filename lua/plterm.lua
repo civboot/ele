@@ -306,19 +306,17 @@ local c, c1, c2, ci, s, u; while true do
 end--coroutine while loop
 end -- input function
 
+-- return a "read next key" function that can be used in a loop
+-- the "next" function blocks until a key is read
+-- it returns ascii code for all keys
+-- (this function assume the tty is already in raw mode)
 term.rawinput = function()
-  -- return a "read next key" function that can be used in a loop
-  -- the "next" function blocks until a key is read
-  -- it returns ascii code for all keys
-  -- (this function assume the tty is already in raw mode)
-  return coroutine.wrap(function()
-    local c
-    while true do
-      c = getcode()
-      yield(c)
-    end
-  end)--coroutine
-end--rawinput()
+  local c
+  while true do
+    c = getcode()
+    yield(c)
+  end
+end
 
 term.getcurpos = function()
   -- return current cursor position (line, column as integers)
