@@ -12,14 +12,6 @@ This module assumes that
 
 Module functions:
 
-cmd('return') -- check the cmd KeyPress valididty
-ctl('c')      -- check the ctl KeyPress valididty
-
-KeyPress      -- main object. Fields
-  - u   : a unicode string (if enabled, else ascii)
-  - ctl : ctl+ the character (i.e. ctl+a)
-  - cmd : a command (return, esc, backspace)
-
 clear()     -- clear screen
 cleareol()  -- clear to end of line
 golc(l, c)  -- move the cursor to line l, column c
@@ -76,11 +68,17 @@ https://en.wikipedia.org/wiki/ANSI_escape_code
 -- local UTF8 = false -- 8-bit encoding (eg. ISO-8859 encodings)
 local UTF8 = true  -- UTF8 encoding
 
+civ = require'civ'
+
 if UTF8 then local utf8 = require "utf8" end
 
 -- some local definitions
 
 local byte, char, yield = string.byte, string.char, coroutine.yield
+
+-- esc sequenc ascii:     esc,  O, [,    ~
+local ESC, LETO, LBR, TIL= 27, 79, 91, 126
+
 
 ------------------------------------------------------------------------
 
@@ -147,32 +145,40 @@ term.colors = {
   reset = 0, normal= 0, bright= 1, bold = 1, reverse = 7,
 }
 
-------------------------------------------------------------------------
--- key input
-local VALID_CMD, VALID_CTL = {}, {}
-local function _assertValid(name, t, key)
-  local v = t[key]; if true == v then return key end
-  if v then error(string.format('%q not valid %s: %s', key, name, v))
-  else error(string.format('%q not valid %s', key, name)) end
-end
-term.assertU   = function(ch, key)
-  assert(#key == 1, key)
-  local cp = codepoint(ch)
-  if cp < 32 or (128 <= cp and cp <= 255) then error(
-    string.format(
-      '%q is not a printable character for u (in key %q)',
-      ch, key)
-  )end
-end
-term.assertCmd = function(c)
-  return _assertValid('cmd', VALID_CMD, c)
-end
-term.assertCtl = function(c)
-  return _assertValid('ctl', VALID_CTL, c)
+----------------
+-- parse a string of key presses into its parts
+-- a/b/^c/return
+term.parseKeys = function(key)
+  local out = {}; for key in string.gmatch(key, '[^/]+') do
+    if string.match(key, '^%^') then key = string.upper(key) end
+    table.insert(out, key)
+  end; return out
 end
 
--- esc sequenc ascii:     esc,  O, [,    ~
-local ESC, LETO, LBR, TIL= 27, 79, 91, 126
+local VALID_KEY = {}
+for c=byte'A', byte'Z' do VALID_KEY['^'..char(c)] = true end
+-- m and i don't have ctrl variants
+VALID_KEY['m'] = 'ctrl+m == return';
+VALID_KEY['i'] = 'ctrl+i == tabl'
+
+local function assertKey(key)
+  assert(#key > 0, 'empty key')
+  local v = VALID_KEY[key]; if true == v then return key end
+  if #key == 1 then
+    local cp = codepoint(key)
+    if cp <= 32 or (127 <= cp and cp <= 255) then error(
+      string.format(
+        '%q is not a printable character for u (in key %q)',
+        ch, key)
+    )end; return key
+  end
+  if v then error(string.format('%q not valid key: %s', key, v))
+  else error(string.format('%q not valid key', key)) end
+end
+
+local function assertKeys(keys)
+  for _, k in ipairs(keys) do assertKey(key) end
+end
 
 -- These tables help convert from
 -- the character code (c) to what keys are
@@ -180,104 +186,86 @@ local ESC, LETO, LBR, TIL= 27, 79, 91, 126
 local CMD = { -- command characters (not sequences)
   [  9] = 'tab',
   [ 13] = 'return',
-  [ESC] = 'esc',
   [127] = 'back',
+  [ESC] = 'esc',
 }
-for _, c in pairs(CMD) do VALID_CMD[c] = true end
-for c=byte'a', byte'z' do VALID_CTL[char(c)] = true end
-VALID_CTL['m'] = 'ctl+m == return'; VALID_CTL['i'] = 'ctl+i == tabl'
+for _, c in pairs(CMD) do VALID_KEY[c] = true end
 
-local function ctlChar(c)
-  if c >= 32 then return nil end
-  return char(96+c)
-end
+term.KEY_LITERAL = {
+  ['tab']       = '\t',
+  ['space']     = ' ',
+  ['slash']     = '/',
+  ['backslash'] = '\\',
+  ['caret']     = '^',
+}
+for c in pairs(term.KEY_LITERAL) do VALID_KEY[c] = true end
 
 local isdigitsc = function(c)
   -- return true if c is the code of a digit or ';'
   return (c >= 48 and c < 58) or c == 59
 end
 
-local KeyPress = {
-  __name='KeyPress',
-  __tostring = function(kp)
-    return kp.repr
-           or (kp.u and kp.c and
-              string.format('u%q[%s]', kp.u, kp.c))
-           or (kp.u and string.format('u%q', kp.u))
-           or (kp.cmd and kp.cmd)
-           or (kp.ctl and string.format('ctl+%s]', kp.ctl))
-           or (kp.c and string.format('c%q', kp.c))
-           or '<KeyPressInvalid>'
-  end,
-}
-setmetatable(KeyPress, {
-  __call=function(ty_, t) return setmetatable(t, ty_) end,
-})
-KeyPress.u = function(u) return KeyPress{u=u}              end
-KeyPress.c = function(c)
-  if     CMD[c]     then return KeyPress{cmd=CMD[c], c=c}
-  elseif ctlChar(c) then return KeyPress{ctl=ctlChar(c), c=c}
-  end
-
-  return KeyPress{u=string.char(c), c=c}
-end
-
-local function keyCmd(s)
-  return KeyPress{cmd=s}
-end
-
 --ansi sequence lookup table
 local CMD_SEQ = {
-  ['[A'] = keyCmd('up'),
-  ['[B'] = keyCmd('down'),
-  ['[C'] = keyCmd('right'),
-  ['[D'] = keyCmd('left'),
+  ['[A'] = 'up',
+  ['[B'] = 'down',
+  ['[C'] = 'right',
+  ['[D'] = 'left',
 
-  ['[2~'] = keyCmd('ins'),
-  ['[3~'] = keyCmd('del'),
-  ['[5~'] = keyCmd('pgup'),
-  ['[6~'] = keyCmd('pgdn'),
-  ['[7~'] = keyCmd('home'),  --rxv
-  ['[8~'] = keyCmd('end'),   --rxv
-  ['[1~'] = keyCmd('home'),  --linu
-  ['[4~'] = keyCmd('end'),   --linu
-  ['[11~'] = keyCmd('f1'),
-  ['[12~'] = keyCmd('f2'),
-  ['[13~'] = keyCmd('f3'),
-  ['[14~'] = keyCmd('f4'),
-  ['[15~'] = keyCmd('f5'),
-  ['[17~'] = keyCmd('f6'),
-  ['[18~'] = keyCmd('f7'),
-  ['[19~'] = keyCmd('f8'),
-  ['[20~'] = keyCmd('f9'),
-  ['[21~'] = keyCmd('f10'),
-  ['[23~'] = keyCmd('f11'),
-  ['[24~'] = keyCmd('f12'),
+  ['[2~'] = 'ins',
+  ['[3~'] = 'del',
+  ['[5~'] = 'pgup',
+  ['[6~'] = 'pgdn',
+  ['[7~'] = 'home',  --rxv
+  ['[8~'] = 'end',   --rxv
+  ['[1~'] = 'home',  --linu
+  ['[4~'] = 'end',   --linu
+  ['[11~'] = 'f1',
+  ['[12~'] = 'f2',
+  ['[13~'] = 'f3',
+  ['[14~'] = 'f4',
+  ['[15~'] = 'f5',
+  ['[17~'] = 'f6',
+  ['[18~'] = 'f7',
+  ['[19~'] = 'f8',
+  ['[20~'] = 'f9',
+  ['[21~'] = 'f10',
+  ['[23~'] = 'f11',
+  ['[24~'] = 'f12',
 
-  ['OP'] = keyCmd('f1'),   --xterm
-  ['OQ'] = keyCmd('f2'),   --xterm
-  ['OR'] = keyCmd('f3'),   --xterm
-  ['OS'] = keyCmd('f4'),   --xterm
-  ['[H'] = keyCmd('home'), --xterm
-  ['[F'] = keyCmd('end'),  --xterm
+  ['OP'] = 'f1',   --xterm
+  ['OQ'] = 'f2',   --xterm
+  ['OR'] = 'f3',   --xterm
+  ['OS'] = 'f4',   --xterm
+  ['[H'] = 'home', --xterm
+  ['[F'] = 'end',  --xterm
 
-  ['[[A'] = keyCmd('f1'),  --linux
-  ['[[B'] = keyCmd('f2'),  --linux
-  ['[[C'] = keyCmd('f3'),  --linux
-  ['[[D'] = keyCmd('f4'),  --linux
-  ['[[E'] = keyCmd('f5'),  --linux
+  ['[[A'] = 'f1',  --linux
+  ['[[B'] = 'f2',  --linux
+  ['[[C'] = 'f3',  --linux
+  ['[[D'] = 'f4',  --linux
+  ['[[E'] = 'f5',  --linux
 
-  ['OH'] = keyCmd('home'), --vt
-  ['OF'] = keyCmd('end'),  --vt
+  ['OH'] = 'home', --vt
+  ['OF'] = 'end',  --vt
 }
-for _, kc in pairs(CMD_SEQ) do VALID_CMD[kc.cmd] = true end
-
-local KeyEsc = KeyPress{c=ESC, cmd='esc'}
-local KeyUnkn = keyCmd('unknown')
+for _, kc in pairs(CMD_SEQ) do VALID_KEY[kc] = true end
+VALID_KEY['unknown'] = true
 
 local getcode = function()
   local c = io.read(1)
   return byte(c)
+end
+
+local function ctrlChar(c)
+  if c >= 32 then return nil end
+  return char(64+c)
+end term.ctrlChar = ctrlChar
+
+local function codeKey(c)
+  if     CMD[c]     then return CMD[c]
+  elseif ctrlChar(c) then return '^'..ctrlChar(c) end
+  return string.char(c)
 end
 
 term.input = function()
@@ -296,7 +284,7 @@ term.input = function()
         u = c & 0x1f
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(KeyPress.u(utf8.char(u)))
+        yield(utf8.char(u))
         goto continue
       elseif c & 0xf0 == 0xe0 then -- 3-byte seq
         u = c & 0x0f
@@ -304,7 +292,7 @@ term.input = function()
         u = (u << 6) | (c & 0x3f)
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(KeyPress.u(utf8.char(u)))
+        yield(utf8.char(u))
         goto continue
       else -- assume it is a 4-byte seq
         u = c & 0x07
@@ -314,22 +302,22 @@ term.input = function()
         u = (u << 6) | (c & 0x3f)
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(KeyPress.u(utf8.char(u)))
+        yield(utf8.char(u))
         goto continue
       end
     end -- end utf8 sequence. continue with c.
     if c ~= ESC then -- not an esc sequence, yield c
-      yield(KeyPress.c(c))
+      yield(codeKey(c))
       goto continue
     end
     c1 = getcode()
     if c1 == ESC then -- esc esc [ ... sequence
-      yield(KeyEsc)
+      yield('esc')
       -- here c still contains ESC, read a new c1
       c1 = getcode() -- and carry on ...
     end
     if c1 ~= LBR and c1 ~= LETO then -- not a valid seq
-      yield(KeyEsc) ; c = c1
+      yield('esc') ; c = c1
       goto restart
     end
     c2 = getcode()
@@ -342,7 +330,7 @@ term.input = function()
       goto continue
     end
     if not isdigitsc(c2) then
-      yield(KeyEsc)
+      yield('esc')
       -- TODO: I'm pretty sure this isn't right
       -- We havne't checked the character type of c1 or c2...
       yield(KeyPress.c(c1))
@@ -359,15 +347,15 @@ term.input = function()
         else
           -- valid but unknown sequence
           -- ignore it
-          yield(KeyUnkn)
+          yield('unknown')
           goto continue
         end
       end
       if not isdigitsc(ci) then
         -- not a valid seq.
         -- return all the chars
-        yield(KeyEsc)
-        for i = 1, #s do yield(Key.c(byte(s, i))) end
+        yield('esc')
+        for i = 1, #s do yield(codekey(byte(s, i))) end
         goto continue
       end
     end--while read until tilde '~'

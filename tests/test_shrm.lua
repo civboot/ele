@@ -12,6 +12,17 @@ local function sleep()
   shix.sleep(Duration(0.9))
 end
 
+test('keypress', nil, function()
+  assertEq({'a', 'b'},  term.parseKeys('a/b'))
+  assertEq({'a', '^B'}, term.parseKeys('a/^b'))
+  assertEq({'a', '^B'}, term.parseKeys('a/^b'))
+  assertEq({'return', '^B'}, term.parseKeys('return/^b'))
+end)
+
+test('ctrl', nil, function()
+  assertEq('P', term.ctrlChar(16))
+end)
+
 local TEST_MSG = [[
 *123456789*123456789*123456789*123456789*123456789*
 1       -- This is a test of the display.      -- 1
@@ -43,15 +54,15 @@ test('display', nil, function()
   term.exitRawMode()
 end) --]]
 
+--[[
 test('input', nil, function()
   print('Note: Cntrl+C to exit. Use to test input. '
          .. 'Logs are in out/debug.log')
-
   term.enterRawMode()
   for kp in term.input() do
     term.debug('Key: ', tostring(kp), kp.c and term.keyname(kp.c))
-    if 3 == kp.c then break end
+    if '^C' == kp then break end
   end
   term.exitRawMode()
-end)
+end) --]]
 
