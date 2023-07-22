@@ -90,8 +90,8 @@ local function outf(...)
 end
 
 local function codepoint(ch)
-  if term.UTF8 then return string.byte(ch)
-  else              return utf8.codepoint(ch) end
+  if UTF8 then return string.byte(ch)
+  else         return utf8.codepoint(ch) end
 end
 
 -- following definitions (from term.clear to term.restore) are
@@ -147,14 +147,7 @@ term.colors = {
 
 ----------------
 -- parse a string of key presses into its parts
--- a/b/^c/return
-term.parseKeys = function(key)
-  local out = {}; for key in string.gmatch(key, '[^/]+') do
-    if string.match(key, '^%^') then key = string.upper(key) end
-    table.insert(out, key)
-  end; return out
-end
-
+--   example: a b ^c return
 local VALID_KEY = {}
 for c=byte'A', byte'Z' do VALID_KEY['^'..char(c)] = true end
 -- m and i don't have ctrl variants
@@ -176,8 +169,17 @@ local function assertKey(key)
   else error(string.format('%q not valid key', key)) end
 end
 
-local function assertKeys(keys)
-  for _, k in ipairs(keys) do assertKey(key) end
+local function fixKeys(keys)
+  for i, k in ipairs(keys) do
+    if string.match(k, '^%^') then k = string.upper(k) end
+    assertKey(k); keys[i] = k
+  end; return keys
+end; term.fixKeys = fixKeys
+
+term.parseKeys = function(key)
+  local out = {}; for key in string.gmatch(key, '%S+') do
+     table.insert(out, key)
+  end; return fixKeys(out)
 end
 
 -- These tables help convert from

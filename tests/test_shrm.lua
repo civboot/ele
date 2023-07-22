@@ -13,10 +13,10 @@ local function sleep()
 end
 
 test('keypress', nil, function()
-  assertEq({'a', 'b'},  term.parseKeys('a/b'))
-  assertEq({'a', '^B'}, term.parseKeys('a/^b'))
-  assertEq({'a', '^B'}, term.parseKeys('a/^b'))
-  assertEq({'return', '^B'}, term.parseKeys('return/^b'))
+  assertEq({'a', 'b'},  term.parseKeys('a b'))
+  assertEq({'a', '^B'}, term.parseKeys('a ^b'))
+  assertEq({'a', '^B'}, term.parseKeys('a ^b'))
+  assertEq({'return', '^B'}, term.parseKeys('return ^b'))
 end)
 
 test('ctrl', nil, function()

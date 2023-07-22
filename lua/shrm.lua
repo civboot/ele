@@ -76,10 +76,6 @@ method(Edit, 'draw', function(e, tl, tc, th, tw)
   term.golc(tl + e.l - 1, tc + e.c - 1)
 end)
 
-local function event(key)
-  return key
-end
-
 -- #####################
 -- # Key Bindings
 
@@ -185,11 +181,11 @@ end)
 method(Shrm, 'step', function(self)
   local key = self.inputCo()
   debug('got key', key)
-  if key.ctl == 'q' then
-    debug('\nctl+q received, ending\n')
+  if key == '^Q' then
+    debug('\nctl+Q received, ending\n')
     return false
   end
-  if key then self.events:addFront(event(key)) end
+  if key then self.events:addFront(key) end
   debug('calling update')
   self:update()
   self:draw()
