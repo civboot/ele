@@ -26,12 +26,13 @@ local TEST_MSG = [[
 *123456789*123456789*123456789*123456789*123456789*]]
 
 
+--[[
 test('display', nil, function()
   local sh = Shrm.new()
   local e = sh.view
   e.buf.gap:insert(TEST_MSG, 1, 1)
   e.l, e.c = 5, 15
-  enterRawMode()
+  term.enterRawMode()
 
   term.clear();
   e:draw(4, 4,  11, 51)
@@ -39,9 +40,18 @@ test('display', nil, function()
   e:draw(4, 56, 11, 51)
   term.outf("-- right box --")
   sleep(); sleep()
-end)
+  term.exitRawMode()
+end) --]]
 
 test('input', nil, function()
-  eprint('Cntrl+C to exit. Use to test input. Logs are in out/debug.log')
+  print('Note: Cntrl+C to exit. Use to test input. '
+         .. 'Logs are in out/debug.log')
+
+  term.enterRawMode()
+  for kp in term.input() do
+    term.debug('Key: ', tostring(kp))
+    if 3 == kp.c then break end
+  end
+  term.exitRawMode()
 end)
 

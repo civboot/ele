@@ -111,6 +111,7 @@ local term={ -- the plterm module
 }
 
 local debugF = io.open('./out/debug.log', 'w')
+
 term.debug = function(...)
   for _, v in ipairs({...}) do
     debugF:write(tostring(v))
@@ -136,38 +137,32 @@ term.colors = {
 ------------------------------------------------------------------------
 -- key input
 
-term.keys = { -- key code definitions
-  unknown = 0x10000,
-  esc = 0x1b,
-  del = 0x7f,
-  kf1 = 0xffff,  -- 0xffff-0
-  kf2 = 0xfffe,  -- 0xffff-1
-  kf3 = 0xfffd,  -- ...
-  kf4 = 0xfffc,
-  kf5 = 0xfffb,
-  kf6 = 0xfffa,
-  kf7 = 0xfff9,
-  kf8 = 0xfff8,
-  kf9 = 0xfff7,
-  kf10 = 0xfff6,
-  kf11 = 0xfff5,
-  kf12 = 0xfff4,
-  kins  = 0xfff3,
-  kdel  = 0xfff2,
-  khome = 0xfff1,
-  kend  = 0xfff0,
-  kpgup = 0xffef,
-  kpgdn = 0xffee,
-  kup   = 0xffed,
-  kdown = 0xffec,
-  kleft = 0xffeb,
-  kright = 0xffea,
-}
-
-local keys = term.keys
-
 -- esc sequenc ascii:     esc,  O, [,    ~
 local ESC, LETO, LBR, TIL= 27, 79, 91, 126
+
+-- These tables help convert from
+-- the character code (c) to what keys are
+-- being hit
+local CMD = { -- command characters (not sequences)
+  [  9] = 'tab',
+  [ 13] = 'return',
+  [ESC] = 'esc',
+  [127] = 'back',
+}
+local CTL = { -- i.e. ctl+q sends 17 on the terminal
+  -- top row
+  [17] = 'q', [23] = 'w', [ 5] = 'e', [18] = 'r',
+  [20] = 't', [25] = 'y', [21] = 'u', -- [ 9] = 'i' (tab)
+  [15] = 'o', [16] = 'p',
+  -- middle row
+  [19] = 's', [ 4] = 'd', [ 6] = 'f', [ 7] = 'g',
+  [ 8] = 'h', [10] = 'j', [11] = 'k', [12] = 'l',
+  -- bottom row
+  [26] = 'z', [24] = 'x', [ 3] = 'c', [22] = 'v',
+  [ 2] = 'b', [14] = 'n', -- [13] = 'm' (return)
+  -- other
+  [28] = '\\'
+}
 
 local isdigitsc = function(c)
   -- return true if c is the code of a digit or ';'
@@ -178,10 +173,11 @@ local KeyPress = {
   __name='KeyPress',
   __tostring = function(kp)
     return kp.repr
-           or (kp.seq and string.format('S[%s]', kp.seq))
-           or (pk.u and kp.c and
+           or (kp.u and kp.c and
               string.format('u%q[%s]', kp.u, kp.c))
            or (kp.u and string.format('u%q', kp.u))
+           or (kp.cmd and string.format('cmd[%s]', kp.cmd))
+           or (kp.ctl and string.format('ctl[%s]', kp.ctl))
            or (kp.c and string.format('c%q', kp.c))
            or '<KeyPressInvalid>'
   end,
@@ -190,11 +186,19 @@ setmetatable(KeyPress, {
   __call=function(ty_, t) return setmetatable(t, ty_) end,
 })
 KeyPress.u = function(u) return KeyPress{u=u}              end
-KeyPress.c = function(c) return KeyPress{u=string.char(c), c=c} end
+KeyPress.c = function(c)
+  if     CMD[c] then return KeyPress{cmd=CMD[c], c=c}
+  elseif CTL[c] then return KeyPress{ctl=CTL[c], c=c}
+  end
+
+  return KeyPress{u=string.char(c), c=c}
+end
 
 local function keySeq(s)
-  return KeyPress{seq=s}
+  return KeyPress{cmd=s}
 end
+
+
 
 --ansi sequence lookup table
 local SEQ = {
@@ -246,7 +250,6 @@ local KeyUnkn = keySeq('unknown')
 
 local getcode = function()
   local c = io.read(1)
-  debug(string.format('getcode %s %q', byte(c), c))
   return byte(c)
 end
 
@@ -289,19 +292,16 @@ term.input = function()
       end
     end -- end utf8 sequence. continue with c.
     if c ~= ESC then -- not an esc sequence, yield c
-      debug('c', c)
       yield(KeyPress.c(c))
       goto continue
     end
     c1 = getcode()
     if c1 == ESC then -- esc esc [ ... sequence
-      debug('ESC')
       yield(KeyEsc)
       -- here c still contains ESC, read a new c1
       c1 = getcode() -- and carry on ...
     end
     if c1 ~= LBR and c1 ~= LETO then -- not a valid seq
-      debug('ESC (invalid)')
       yield(KeyEsc) ; c = c1
       goto restart
     end
@@ -311,12 +311,10 @@ term.input = function()
       s = s .. char(getcode())
     end
     if SEQ[s] then
-      debug(string.format('seq %q %u', s, SEQ[s]))
       yield(SEQ[s])
       goto continue
     end
     if not isdigitsc(c2) then
-      debug('bad place')
       yield(KeyEsc)
       -- TODO: I'm pretty sure this isn't right
       -- We havne't checked the character type of c1 or c2...
@@ -329,11 +327,9 @@ term.input = function()
       s = s .. char(ci)
       if ci == TIL then
         if SEQ[s] then
-          debug(string.format('seq %q (tilde)', s))
           yield(SEQ[s])
           goto continue
         else
-          debug('KeyUnkn')
           -- valid but unknown sequence
           -- ignore it
           yield(KeyUnkn)
@@ -341,7 +337,6 @@ term.input = function()
         end
       end
       if not isdigitsc(ci) then
-        debug(string.format('invaid %q', s))
         -- not a valid seq.
         -- return all the chars
         yield(KeyEsc)
@@ -464,11 +459,13 @@ term.enterRawMode = function()
   }
   setmetatable(term.ATEXIT, atexit)
   term.setrawmode()
+  debug('Entered raw mode')
 end
 term.exitRawMode = function()
   local mt = getmetatable(term.ATEXIT); assert(mt)
   mt.__gc()
   setmetatable(term.ATEXIT, nil)
+  debug('Exited raw mode')
 end
 
 return term
