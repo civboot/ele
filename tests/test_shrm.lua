@@ -41,3 +41,7 @@ test('display', nil, function()
   sleep(); sleep()
 end)
 
+test('input', nil, function()
+  eprint('Cntrl+C to exit. Use to test input. Logs are in out/debug.log')
+end)
+

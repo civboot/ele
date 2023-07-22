@@ -74,7 +74,6 @@ if UTF8 then local utf8 = require "utf8" end
 
 local byte, char, yield = string.byte, string.char, coroutine.yield
 
-
 ------------------------------------------------------------------------
 
 local out = io.write
@@ -110,6 +109,17 @@ local term={ -- the plterm module
   -- reset terminal (clear and reset default colors)
   reset   = function() out("\027c") end,
 }
+
+local debugF = io.open('./out/debug.log', 'w')
+term.debug = function(...)
+  for _, v in ipairs({...}) do
+    debugF:write(tostring(v))
+    debugF:write('\t')
+  end
+  debugF:write('\n')
+  debugF:flush()
+end
+local debug = term.debug
 
 term.colors = {
   default = 0,
@@ -164,52 +174,81 @@ local isdigitsc = function(c)
   return (c >= 48 and c < 58) or c == 59
 end
 
+local KeyPress = {
+  __name='KeyPress',
+  __tostring = function(kp)
+    return kp.repr
+           or (kp.seq and string.format('S[%s]', kp.seq))
+           or (pk.u and kp.c and
+              string.format('u%q[%s]', kp.u, kp.c))
+           or (kp.u and string.format('u%q', kp.u))
+           or (kp.c and string.format('c%q', kp.c))
+           or '<KeyPressInvalid>'
+  end,
+}
+setmetatable(KeyPress, {
+  __call=function(ty_, t) return setmetatable(t, ty_) end,
+})
+KeyPress.u = function(u) return KeyPress{u=u}              end
+KeyPress.c = function(c) return KeyPress{u=string.char(c), c=c} end
+
+local function keySeq(s)
+  return KeyPress{seq=s}
+end
+
 --ansi sequence lookup table
-local seq = {
-  ['[A'] = keys.kup,
-  ['[B'] = keys.kdown,
-  ['[C'] = keys.kright,
-  ['[D'] = keys.kleft,
+local SEQ = {
+  ['[A'] = keySeq('up'),
+  ['[B'] = keySeq('down'),
+  ['[C'] = keySeq('right'),
+  ['[D'] = keySeq('left'),
 
-  ['[2~'] = keys.kins,
-  ['[3~'] = keys.kdel,
-  ['[5~'] = keys.kpgup,
-  ['[6~'] = keys.kpgdn,
-  ['[7~'] = keys.khome,  --rxvt
-  ['[8~'] = keys.kend,   --rxvt
-  ['[1~'] = keys.khome,  --linux
-  ['[4~'] = keys.kend,   --linux
-  ['[11~'] = keys.kf1,
-  ['[12~'] = keys.kf2,
-  ['[13~'] = keys.kf3,
-  ['[14~'] = keys.kf4,
-  ['[15~'] = keys.kf5,
-  ['[17~'] = keys.kf6,
-  ['[18~'] = keys.kf7,
-  ['[19~'] = keys.kf8,
-  ['[20~'] = keys.kf9,
-  ['[21~'] = keys.kf10,
-  ['[23~'] = keys.kf11,
-  ['[24~'] = keys.kf12,
+  ['[2~'] = keySeq('ins'),
+  ['[3~'] = keySeq('del'),
+  ['[5~'] = keySeq('pgup'),
+  ['[6~'] = keySeq('pgdn'),
+  ['[7~'] = keySeq('home'),  --rxv
+  ['[8~'] = keySeq('end'),   --rxv
+  ['[1~'] = keySeq('home'),  --linu
+  ['[4~'] = keySeq('end'),   --linu
+  ['[11~'] = keySeq('f1'),
+  ['[12~'] = keySeq('f2'),
+  ['[13~'] = keySeq('f3'),
+  ['[14~'] = keySeq('f4'),
+  ['[15~'] = keySeq('f5'),
+  ['[17~'] = keySeq('f6'),
+  ['[18~'] = keySeq('f7'),
+  ['[19~'] = keySeq('f8'),
+  ['[20~'] = keySeq('f9'),
+  ['[21~'] = keySeq('f10'),
+  ['[23~'] = keySeq('f11'),
+  ['[24~'] = keySeq('f12'),
 
-  ['OP'] = keys.kf1,   --xterm
-  ['OQ'] = keys.kf2,   --xterm
-  ['OR'] = keys.kf3,   --xterm
-  ['OS'] = keys.kf4,   --xterm
-  ['[H'] = keys.khome, --xterm
-  ['[F'] = keys.kend,  --xterm
+  ['OP'] = keySeq('f1'),   --xterm
+  ['OQ'] = keySeq('f2'),   --xterm
+  ['OR'] = keySeq('f3'),   --xterm
+  ['OS'] = keySeq('f4'),   --xterm
+  ['[H'] = keySeq('home'), --xterm
+  ['[F'] = keySeq('end'),  --xterm
 
-  ['[[A'] = keys.kf1,  --linux
-  ['[[B'] = keys.kf2,  --linux
-  ['[[C'] = keys.kf3,  --linux
-  ['[[D'] = keys.kf4,  --linux
-  ['[[E'] = keys.kf5,  --linux
+  ['[[A'] = keySeq('f1'),  --linux
+  ['[[B'] = keySeq('f2'),  --linux
+  ['[[C'] = keySeq('f3'),  --linux
+  ['[[D'] = keySeq('f4'),  --linux
+  ['[[E'] = keySeq('f5'),  --linux
 
-  ['OH'] = keys.khome, --vte
-  ['OF'] = keys.kend,  --vte
+  ['OH'] = keySeq('home'), --vt
+  ['OF'] = keySeq('end'),  --vt
 }
 
-local getcode = function() return byte(io.read(1)) end
+local KeyEsc = KeyPress{c=ESC, u='~', repr='ESC'}
+local KeyUnkn = keySeq('unknown')
+
+local getcode = function()
+  local c = io.read(1)
+  debug(string.format('getcode %s %q', byte(c), c))
+  return byte(c)
+end
 
 term.input = function()
   -- return a "read next key" function that can be used in a loop
@@ -227,7 +266,7 @@ term.input = function()
         u = c & 0x1f
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(u)
+        yield(KeyPress.u(u))
         goto continue
       elseif c & 0xf0 == 0xe0 then -- 3-byte seq
         u = c & 0x0f
@@ -235,7 +274,7 @@ term.input = function()
         u = (u << 6) | (c & 0x3f)
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(u)
+        yield(KeyPress.u(u))
         goto continue
       else -- assume it is a 4-byte seq
         u = c & 0x07
@@ -245,61 +284,68 @@ term.input = function()
         u = (u << 6) | (c & 0x3f)
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(u)
+        yeild(KeyPress.u(u))
         goto continue
       end
     end -- end utf8 sequence. continue with c.
     if c ~= ESC then -- not an esc sequence, yield c
-      yield(c)
+      debug('c', c)
+      yield(KeyPress.c(c))
       goto continue
     end
     c1 = getcode()
     if c1 == ESC then -- esc esc [ ... sequence
-      yield(ESC)
+      debug('ESC')
+      yield(KeyEsc)
       -- here c still contains ESC, read a new c1
       c1 = getcode() -- and carry on ...
     end
     if c1 ~= LBR and c1 ~= LETO then -- not a valid seq
-      if UTF8 then
-        -- c1 maybe the beginning of an utf8 seq...
-        yield(c) ; c = c1 ; goto restart
-      else
-        yield(c) ; yield(c1)
-        goto continue
-      end
+      debug('ESC (invalid)')
+      yield(KeyEsc) ; c = c1
+      goto restart
     end
     c2 = getcode()
     s = char(c1, c2)
     if c2 == LBR then -- esc[[x sequences (F1-F5 in linux console)
       s = s .. char(getcode())
     end
-    if seq[s] then
-      yield(seq[s])
+    if SEQ[s] then
+      debug(string.format('seq %q %u', s, SEQ[s]))
+      yield(SEQ[s])
       goto continue
     end
     if not isdigitsc(c2) then
-      yield(c) ; yield(c1) ; yield(c2)
+      debug('bad place')
+      yield(KeyEsc)
+      -- TODO: I'm pretty sure this isn't right
+      -- We havne't checked the character type of c1 or c2...
+      yield(KeyPress.c(c1))
+      yield(KeyPress.c(c2))
       goto continue
     end
     while true do -- read until tilde '~'
       ci = getcode()
       s = s .. char(ci)
       if ci == TIL then
-        if seq[s] then
-          yield(seq[s])
+        if SEQ[s] then
+          debug(string.format('seq %q (tilde)', s))
+          yield(SEQ[s])
           goto continue
         else
+          debug('KeyUnkn')
           -- valid but unknown sequence
           -- ignore it
-          yield(keys.unknown)
+          yield(KeyUnkn)
           goto continue
         end
       end
       if not isdigitsc(ci) then
+        debug(string.format('invaid %q', s))
         -- not a valid seq.
         -- return all the chars
-        yield(ESC)
-        for i = 1, #s do yield(byte(s, i)) end
+        yield(KeyEsc)
+        for i = 1, #s do yield(Key.c(byte(s, i))) end
         goto continue
       end
     end--while read until tilde '~'
@@ -402,6 +448,27 @@ end
 
 term.restoremode = function(mode)
   return os.execute(stty .. " " .. mode)
+end
+
+term.ATEXIT = {}
+term.enterRawMode = function()
+  assert(not getmetatable(term.ATEXIT))
+  local SAVED, err, msg = term.savemode()
+  assert(err, msg); err, msg = nil, nil
+  local atexit = {
+    __gc = function()
+      term.clear()
+      term.restoremode(SAVED)
+      print('\n## Restored terminal from rawmode')
+   end,
+  }
+  setmetatable(term.ATEXIT, atexit)
+  term.setrawmode()
+end
+term.exitRawMode = function()
+  local mt = getmetatable(term.ATEXIT); assert(mt)
+  mt.__gc()
+  setmetatable(term.ATEXIT, nil)
 end
 
 return term

@@ -6,42 +6,12 @@ local posix = require'posix'
 
 local yld = coroutine.yield
 local outf = term.outf
+local debug = term.debug
 
 local shrm = {} -- module
 
 local DRAW_PERIOD = Duration(0.03)
 local MODE = { command='command', insert='insert' }
-
-shrm.ATEXIT = {}
-shrm.enterRawMode = function()
-  assert(not getmetatable(shrm.ATEXIT))
-  local SAVED, err, msg = term.savemode()
-  assert(err, msg); err, msg = nil, nil
-  local atexit = {
-    __gc = function()
-      term.clear()
-      term.restoremode(SAVED)
-      print('\n## Restored terminal from rawmode')
-   end,
-  }
-  setmetatable(shrm.ATEXIT, atexit)
-  term.setrawmode()
-end
-shrm.exitRawMode = function()
-  local mt = getmetatable(shrm.ATEXIT); assert(mt)
-  mt.__gc()
-  setmetatable(shrm.ATEXIT, nil)
-end
-
-local debugF = io.open('./out/debug.log', 'w')
-local function debug(...)
-  for _, v in ipairs({...}) do
-    debugF:write(tostring(v))
-    debugF:write('\t')
-  end
-  debugF:write('\n')
-  debugF:flush()
-end
 
 local Change = struct('Diff', {
   {'l', Num},  {'c', Num},                -- start of action
@@ -85,7 +55,7 @@ end)
 
 
 local function event(key)
-  return {key=key}
+  return key
 end
 
 local Shrm = struct('Shrm', {
@@ -123,7 +93,7 @@ method(Shrm, 'new', function()
     w=100, h=50,
   }
   sh.view = Edit{buf=sts, l=1, c=1, vl=1, vc=1, container=sh}
-  sh.inputCo  = term.rawinput()
+  sh.inputCo  = term.input()
   return setmetatable(sh, Shrm)
 end)
 method(Shrm, 'status', function(self, m)
@@ -155,7 +125,8 @@ method(Shrm, 'update', function(self)
     if self:loopReturn() then return end
     local ev = self.events:popBack()
     debug('doing event', ev)
-    self:status({'Event[', self.mode, ']: ', fmt(ev), '\n'})
+    self:status({
+      'Event[', self.mode, ']: ', tostring(ev), '\n'})
     _UPDATE_MODE[self.mode](self, ev)
   end
   debug('update end')
