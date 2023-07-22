@@ -29,6 +29,7 @@ method(Gap, 'new', function(s)
   return Gap{ bot=bot, top=List{} }
 end)
 
+
 function _lcs(l, c, l2, c2)
   if nil == l2 and nil == c2 then return l, nil, c, nil end
   if nil == l2 or  nil == c2 then error(
@@ -117,6 +118,8 @@ method(Gap, 'sub', function(g, ...)
   end
   return s
 end)
+
+method(Gap, 'append', function(g, s) g:insert(s, g:len(), CMAX) end)
 
 method(Gap, '__tostring', function(g)
   local bot = concat(g.bot, '\n')
