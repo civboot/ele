@@ -49,7 +49,7 @@ test('input', nil, function()
 
   term.enterRawMode()
   for kp in term.input() do
-    term.debug('Key: ', tostring(kp))
+    term.debug('Key: ', tostring(kp), kp.c and term.keyname(kp.c))
     if 3 == kp.c then break end
   end
   term.exitRawMode()

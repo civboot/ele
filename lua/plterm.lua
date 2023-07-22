@@ -12,6 +12,14 @@ This module assumes that
 
 Module functions:
 
+cmd('return') -- check the cmd KeyPress valididty
+ctl('c')      -- check the ctl KeyPress valididty
+
+KeyPress      -- main object. Fields
+  - u   : a unicode string (if enabled, else ascii)
+  - ctl : ctl+ the character (i.e. ctl+a)
+  - cmd : a command (return, esc, backspace)
+
 clear()     -- clear screen
 cleareol()  -- clear to end of line
 golc(l, c)  -- move the cursor to line l, column c
@@ -83,6 +91,11 @@ local function outf(...)
   io.write(...); io.flush()
 end
 
+local function codepoint(ch)
+  if term.UTF8 then return string.byte(ch)
+  else              return utf8.codepoint(ch) end
+end
+
 -- following definitions (from term.clear to term.restore) are
 -- based on public domain code by Luiz Henrique de Figueiredo
 -- http://lua-users.org/lists/lua-l/2009-12/msg00942.html
@@ -136,6 +149,27 @@ term.colors = {
 
 ------------------------------------------------------------------------
 -- key input
+local VALID_CMD, VALID_CTL = {}, {}
+local function _assertValid(name, t, key)
+  local v = t[key]; if true == v then return key end
+  if v then error(string.format('%q not valid %s: %s', key, name, v))
+  else error(string.format('%q not valid %s', key, name)) end
+end
+term.assertU   = function(ch, key)
+  assert(#key == 1, key)
+  local cp = codepoint(ch)
+  if cp < 32 or (128 <= cp and cp <= 255) then error(
+    string.format(
+      '%q is not a printable character for u (in key %q)',
+      ch, key)
+  )end
+end
+term.assertCmd = function(c)
+  return _assertValid('cmd', VALID_CMD, c)
+end
+term.assertCtl = function(c)
+  return _assertValid('ctl', VALID_CTL, c)
+end
 
 -- esc sequenc ascii:     esc,  O, [,    ~
 local ESC, LETO, LBR, TIL= 27, 79, 91, 126
@@ -149,20 +183,14 @@ local CMD = { -- command characters (not sequences)
   [ESC] = 'esc',
   [127] = 'back',
 }
-local CTL = { -- i.e. ctl+q sends 17 on the terminal
-  -- top row
-  [17] = 'q', [23] = 'w', [ 5] = 'e', [18] = 'r',
-  [20] = 't', [25] = 'y', [21] = 'u', -- [ 9] = 'i' (tab)
-  [15] = 'o', [16] = 'p',
-  -- middle row
-  [19] = 's', [ 4] = 'd', [ 6] = 'f', [ 7] = 'g',
-  [ 8] = 'h', [10] = 'j', [11] = 'k', [12] = 'l',
-  -- bottom row
-  [26] = 'z', [24] = 'x', [ 3] = 'c', [22] = 'v',
-  [ 2] = 'b', [14] = 'n', -- [13] = 'm' (return)
-  -- other
-  [28] = '\\'
-}
+for _, c in pairs(CMD) do VALID_CMD[c] = true end
+for c=byte'a', byte'z' do VALID_CTL[char(c)] = true end
+VALID_CTL['m'] = 'ctl+m == return'; VALID_CTL['i'] = 'ctl+i == tabl'
+
+local function ctlChar(c)
+  if c >= 32 then return nil end
+  return char(96+c)
+end
 
 local isdigitsc = function(c)
   -- return true if c is the code of a digit or ';'
@@ -176,8 +204,8 @@ local KeyPress = {
            or (kp.u and kp.c and
               string.format('u%q[%s]', kp.u, kp.c))
            or (kp.u and string.format('u%q', kp.u))
-           or (kp.cmd and string.format('cmd[%s]', kp.cmd))
-           or (kp.ctl and string.format('ctl[%s]', kp.ctl))
+           or (kp.cmd and kp.cmd)
+           or (kp.ctl and string.format('ctl+%s]', kp.ctl))
            or (kp.c and string.format('c%q', kp.c))
            or '<KeyPressInvalid>'
   end,
@@ -187,66 +215,65 @@ setmetatable(KeyPress, {
 })
 KeyPress.u = function(u) return KeyPress{u=u}              end
 KeyPress.c = function(c)
-  if     CMD[c] then return KeyPress{cmd=CMD[c], c=c}
-  elseif CTL[c] then return KeyPress{ctl=CTL[c], c=c}
+  if     CMD[c]     then return KeyPress{cmd=CMD[c], c=c}
+  elseif ctlChar(c) then return KeyPress{ctl=ctlChar(c), c=c}
   end
 
   return KeyPress{u=string.char(c), c=c}
 end
 
-local function keySeq(s)
+local function keyCmd(s)
   return KeyPress{cmd=s}
 end
 
-
-
 --ansi sequence lookup table
-local SEQ = {
-  ['[A'] = keySeq('up'),
-  ['[B'] = keySeq('down'),
-  ['[C'] = keySeq('right'),
-  ['[D'] = keySeq('left'),
+local CMD_SEQ = {
+  ['[A'] = keyCmd('up'),
+  ['[B'] = keyCmd('down'),
+  ['[C'] = keyCmd('right'),
+  ['[D'] = keyCmd('left'),
 
-  ['[2~'] = keySeq('ins'),
-  ['[3~'] = keySeq('del'),
-  ['[5~'] = keySeq('pgup'),
-  ['[6~'] = keySeq('pgdn'),
-  ['[7~'] = keySeq('home'),  --rxv
-  ['[8~'] = keySeq('end'),   --rxv
-  ['[1~'] = keySeq('home'),  --linu
-  ['[4~'] = keySeq('end'),   --linu
-  ['[11~'] = keySeq('f1'),
-  ['[12~'] = keySeq('f2'),
-  ['[13~'] = keySeq('f3'),
-  ['[14~'] = keySeq('f4'),
-  ['[15~'] = keySeq('f5'),
-  ['[17~'] = keySeq('f6'),
-  ['[18~'] = keySeq('f7'),
-  ['[19~'] = keySeq('f8'),
-  ['[20~'] = keySeq('f9'),
-  ['[21~'] = keySeq('f10'),
-  ['[23~'] = keySeq('f11'),
-  ['[24~'] = keySeq('f12'),
+  ['[2~'] = keyCmd('ins'),
+  ['[3~'] = keyCmd('del'),
+  ['[5~'] = keyCmd('pgup'),
+  ['[6~'] = keyCmd('pgdn'),
+  ['[7~'] = keyCmd('home'),  --rxv
+  ['[8~'] = keyCmd('end'),   --rxv
+  ['[1~'] = keyCmd('home'),  --linu
+  ['[4~'] = keyCmd('end'),   --linu
+  ['[11~'] = keyCmd('f1'),
+  ['[12~'] = keyCmd('f2'),
+  ['[13~'] = keyCmd('f3'),
+  ['[14~'] = keyCmd('f4'),
+  ['[15~'] = keyCmd('f5'),
+  ['[17~'] = keyCmd('f6'),
+  ['[18~'] = keyCmd('f7'),
+  ['[19~'] = keyCmd('f8'),
+  ['[20~'] = keyCmd('f9'),
+  ['[21~'] = keyCmd('f10'),
+  ['[23~'] = keyCmd('f11'),
+  ['[24~'] = keyCmd('f12'),
 
-  ['OP'] = keySeq('f1'),   --xterm
-  ['OQ'] = keySeq('f2'),   --xterm
-  ['OR'] = keySeq('f3'),   --xterm
-  ['OS'] = keySeq('f4'),   --xterm
-  ['[H'] = keySeq('home'), --xterm
-  ['[F'] = keySeq('end'),  --xterm
+  ['OP'] = keyCmd('f1'),   --xterm
+  ['OQ'] = keyCmd('f2'),   --xterm
+  ['OR'] = keyCmd('f3'),   --xterm
+  ['OS'] = keyCmd('f4'),   --xterm
+  ['[H'] = keyCmd('home'), --xterm
+  ['[F'] = keyCmd('end'),  --xterm
 
-  ['[[A'] = keySeq('f1'),  --linux
-  ['[[B'] = keySeq('f2'),  --linux
-  ['[[C'] = keySeq('f3'),  --linux
-  ['[[D'] = keySeq('f4'),  --linux
-  ['[[E'] = keySeq('f5'),  --linux
+  ['[[A'] = keyCmd('f1'),  --linux
+  ['[[B'] = keyCmd('f2'),  --linux
+  ['[[C'] = keyCmd('f3'),  --linux
+  ['[[D'] = keyCmd('f4'),  --linux
+  ['[[E'] = keyCmd('f5'),  --linux
 
-  ['OH'] = keySeq('home'), --vt
-  ['OF'] = keySeq('end'),  --vt
+  ['OH'] = keyCmd('home'), --vt
+  ['OF'] = keyCmd('end'),  --vt
 }
+for _, kc in pairs(CMD_SEQ) do VALID_CMD[kc.cmd] = true end
 
-local KeyEsc = KeyPress{c=ESC, u='~', repr='ESC'}
-local KeyUnkn = keySeq('unknown')
+local KeyEsc = KeyPress{c=ESC, cmd='esc'}
+local KeyUnkn = keyCmd('unknown')
 
 local getcode = function()
   local c = io.read(1)
@@ -269,7 +296,7 @@ term.input = function()
         u = c & 0x1f
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(KeyPress.u(u))
+        yield(KeyPress.u(utf8.char(u)))
         goto continue
       elseif c & 0xf0 == 0xe0 then -- 3-byte seq
         u = c & 0x0f
@@ -277,7 +304,7 @@ term.input = function()
         u = (u << 6) | (c & 0x3f)
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yield(KeyPress.u(u))
+        yield(KeyPress.u(utf8.char(u)))
         goto continue
       else -- assume it is a 4-byte seq
         u = c & 0x07
@@ -287,7 +314,7 @@ term.input = function()
         u = (u << 6) | (c & 0x3f)
         c = getcode()
         u = (u << 6) | (c & 0x3f)
-        yeild(KeyPress.u(u))
+        yield(KeyPress.u(utf8.char(u)))
         goto continue
       end
     end -- end utf8 sequence. continue with c.
@@ -310,8 +337,8 @@ term.input = function()
     if c2 == LBR then -- esc[[x sequences (F1-F5 in linux console)
       s = s .. char(getcode())
     end
-    if SEQ[s] then
-      yield(SEQ[s])
+    if CMD_SEQ[s] then
+      yield(CMD_SEQ[s])
       goto continue
     end
     if not isdigitsc(c2) then
@@ -326,8 +353,8 @@ term.input = function()
       ci = getcode()
       s = s .. char(ci)
       if ci == TIL then
-        if SEQ[s] then
-          yield(SEQ[s])
+        if CMD_SEQ[s] then
+          yield(CMD_SEQ[s])
           goto continue
         else
           -- valid but unknown sequence
@@ -393,23 +420,6 @@ term.size = function()
   return l, c
 end
 
-term.keyname = function(c)
-  for k, v in pairs(keys) do
-    if c == v then
-      return k
-    end
-  end
-  if c < 32 then return "^" .. char(c+64) end
-  -- utf8
-  if UTF8 then
-    return utf8.char(c)
-  elseif c < 256 then
-    return char(c)
-  else
-    return tostring(c)
-  end
-end
-
 ------------------------------------------------------------------------
 -- poor man's tty mode management, based on stty
 -- (better use slua linenoise extension if available)
@@ -445,6 +455,7 @@ term.restoremode = function(mode)
   return os.execute(stty .. " " .. mode)
 end
 
+-- setting __gc causes restoremode to be called on program exit
 term.ATEXIT = {}
 term.enterRawMode = function()
   assert(not getmetatable(term.ATEXIT))
@@ -454,7 +465,7 @@ term.enterRawMode = function()
     __gc = function()
       term.clear()
       term.restoremode(SAVED)
-      print('\n## Restored terminal from rawmode')
+      debug('Exited raw mode')
    end,
   }
   setmetatable(term.ATEXIT, atexit)
@@ -465,7 +476,6 @@ term.exitRawMode = function()
   local mt = getmetatable(term.ATEXIT); assert(mt)
   mt.__gc()
   setmetatable(term.ATEXIT, nil)
-  debug('Exited raw mode')
 end
 
 return term
