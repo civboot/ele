@@ -1,111 +1,22 @@
-local civ  = require'civ':grequire()
+require'civ':grequire()
+grequire'types'
 local shix = require'shix'
 local term = require'plterm'
 local gap  = require'gap'
 local posix = require'posix'
+local buffer = require'buffer'
 
 local yld = coroutine.yield
 local outf = term.outf
 local debug = term.debug
 
-local shrm = {} -- module
+local M = {} -- module
 
 local DRAW_PERIOD = Duration(0.03)
 local MODE = { command='command', insert='insert' }
 
 -- #####################
--- # Data structures
-
-local Change = struct('Diff', {
-  {'l', Num},  {'c', Num},                -- start of action
-  {'l2', Num, false}, {'c2', Num, false}, -- (optional) end
-  {'value', Str, false}, -- value removed in action
-})
-
-local Buffer = struct('Buffer', {
-  {'gap', gap.Gap},
-
-  -- recorded changes from update
-  {'changes', List}, {'changeI', Num}, -- undo/redo
-})
-method(Buffer, 'new', function()
-  return Buffer{
-    gap=gap.Gap.new(),
-    changes=List{}, changeI=0,
-  }
-end)
-
-local Edit = struct('Edit', {
-  {'buf', Buffer},
-
-  {'l',  Num}, {'c',  Num}, -- cursor (line,col)
-  {'vl', Num}, {'vc', Num}, -- view (top left l,c)
-
-  -- where this is contained
-  -- (Shrm, Rows, Cols)
-  'container',
-  'bindings',
-})
-
-local Action = struct('Action', {
-  {'name', Str}, {'fn', Fn},
-  {'brief', Str, false}, {'doc', Str, false},
-  'config', 'data', -- action specific
-})
-
--- Bindings to Actions
-local Bindings = struct('Bindings', {
-  {'insert', Map}, {'command', Map},
-})
-
-local Shrm = struct('Shrm', {
-  {'mode', Str}, -- the UI mode (command, insert)
-  'view', -- Edit or Cols or Rows
-  'edit', -- The active editor
-  {'buffers', List}, {'bufferI', Num},
-  {'epoch', nil, shix.epoch},
-  {'start', Epoch}, {'lastDraw', Epoch},
-  {'bindings', Bindings},
-  {'chord', Map, false}, {'chordKeys', List},
-
-  {'inputCo'},
-
-  -- events from inputCo (LL)
-  {'events'},
-
-  {'statusBuf', Buffer},
-})
-
-
--- #####################
--- # Edit struct
--- Implements an edit view and state
-
--- These are going to track state/cursor/etc
-method(Edit, 'insert', function(e, s)
-  e.buf.gap:insert(s, e.l, e.c)
-  e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
-end)
-method(Edit, 'remove', function(e, ...)
-  self.gap:remove(...)
-end)
-method(Edit, 'append', function(e, ...)
-  self.gap:append(...)
-end)
-
--- draw to term (l, c, w, h)
-method(Edit, 'draw', function(e, tl, tc, th, tw)
-  assert((tl > 0) and (tc > 0) and (tw > 0) and (th > 0))
-  for l, line in ipairs(e.buf.gap:sub(e.vl, e.vl + th - 1)) do
-    term.golc(tl + l - 1, tc); term.cleareol()
-    outf(string.sub(line, 1, e.vc + tw - 1))
-  end
-  term.golc(tl + e.l - 1, tc + e.c - 1)
-end)
-
--- #####################
 -- # Key Bindings
-
 method(Bindings, '_update', function(b, mode, bindings, checker)
   local bm = b[mode]
   for keys, act in pairs(bindings) do
@@ -136,11 +47,11 @@ local BINDINGS = Bindings{
 method(Bindings, 'default', function() return deepcopy(BINDINGS) end)
 
 -- #####################
--- # Shrm struct
+-- # Lede struct
 -- Implements the core app
 
-method(Shrm, '__tostring', function() return 'APP' end)
-method(Shrm, 'new', function()
+method(Lede, '__tostring', function() return 'APP' end)
+method(Lede, 'new', function()
   local sts = Buffer.new()
   local sh = {
     mode='command',
@@ -157,20 +68,20 @@ method(Shrm, 'new', function()
   sh.view = Edit{buf=sts, l=1, c=1, vl=1, vc=1, container=sh}
   sh.edit = sh.view
   sh.inputCo  = term.input()
-  return setmetatable(sh, Shrm)
+  return setmetatable(sh, Lede)
 end)
 
 -- #####################
 -- # Utility methods
-method(Shrm, 'status', function(self, m)
+method(Lede, 'status', function(self, m)
   if type(m) ~= 'string' then m = concat(m) end
   self.statusBuf.gap:append(m)
   term.debug('Status: ', m)
 end)
-method(Shrm, 'spent', function(self)
+method(Lede, 'spent', function(self)
   return shix.epoch() - self.start
 end)
-method(Shrm, 'loopReturn', function(self)
+method(Lede, 'loopReturn', function(self)
   -- local spent = self:spent()
   -- if DRAW_PERIOD < spent then
   --   return true
@@ -180,7 +91,7 @@ end)
 
 -- #####################
 --   * draw
-method(Shrm, 'draw', function(self)
+method(Lede, 'draw', function(self)
   local lastDraw = shix.epoch() - self.lastDraw
   if DRAW_PERIOD < lastDraw then
     h, w = term.size()
@@ -192,11 +103,11 @@ end)
 -- #####################
 --   * update
 
-method(Shrm, 'unrecognized', function(self, keys)
+method(Lede, 'unrecognized', function(self, keys)
   self:status('unrecognized chord: ' .. concat(keys, ' '))
 end)
 
-method(Shrm, 'defaultAction', function(self, keys)
+method(Lede, 'defaultAction', function(self, keys)
   if self.mode == 'command' then
     self:unrecognized(keys)
   elseif self.mode == 'insert' then
@@ -214,7 +125,7 @@ method(Shrm, 'defaultAction', function(self, keys)
   end
 end)
 
-method(Shrm, 'update', function(self)
+method(Lede, 'update', function(self)
   debug('update loop')
   while not self.events:isEmpty() do
     local ev = self.events:popBack()
@@ -247,7 +158,7 @@ end)
 
 -- #####################
 --   * step: run all pieces
-method(Shrm, 'step', function(self)
+method(Lede, 'step', function(self)
   local key = self.inputCo()
   self.start = shix.epoch()
   debug('got key', key)
@@ -263,7 +174,7 @@ method(Shrm, 'step', function(self)
   return true
 end)
 
-method(Shrm, 'app', function(self)
+method(Lede, 'app', function(self)
   term.enterRawMode()
   while true do
     if not self:step() then break end
@@ -274,18 +185,18 @@ end)
 
 -- #####################
 -- # Actions
-shrm.QuitAction = Action{
+M.QuitAction = Action{
   name='quit', brief='quit the application',
   fn = function(app) app.mode = 'quit'    end,
 }
-shrm.CommandAction = Action{
+M.CommandAction = Action{
   name='command', brief='go to command mode',
   fn = function(app)
     app.mode = 'command'
     app.chord = nil
   end,
 }
-shrm.InsertAction = Action{
+M.InsertAction = Action{
   name='insert', brief='go to insert mode',
   fn = function(app)
     app.mode = 'insert'
@@ -298,15 +209,15 @@ shrm.InsertAction = Action{
 
 -- -- Insert Mode
 BINDINGS:updateInsert{
-  ['^Q ^Q'] = shrm.QuitAction,
-  ['^J']    = shrm.CommandAction,
-  ['esc']   = shrm.CommandAction,
+  ['^Q ^Q'] = M.QuitAction,
+  ['^J']    = M.CommandAction,
+  ['esc']   = M.CommandAction,
 }
 
 -- Command Mode
 BINDINGS:updateCommand{
-  ['^Q ^Q'] = shrm.QuitAction,
-  i         = shrm.InsertAction,
+  ['^Q ^Q'] = M.QuitAction,
+  i         = M.InsertAction,
 }
 
 -- #####################
@@ -314,13 +225,10 @@ BINDINGS:updateCommand{
 
 local function main()
   print"## Running (shrm ctl+q to quit)"
-  local sh = Shrm.new()
+  local sh = Lede.new()
   sh:app()
 end
 
 if not civ.TESTING then main() end
 
-update(shrm, {
-  Shrm=Shrm,
-})
-return shrm
+return M

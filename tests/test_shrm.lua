@@ -43,7 +43,7 @@ local TEST_MSG = [[
 
 --[[
 test('display', nil, function()
-  local sh = Shrm.new()
+  local sh = Lede.new()
   local e = sh.view
   e.buf.gap:insert(TEST_MSG, 1, 1)
   e.l, e.c = 5, 15
