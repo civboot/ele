@@ -184,7 +184,7 @@ end
 
 term.KEY_INSERT = {
   ['tab']       = '\t',
-  ['return'     = '\n',
+  ['return']    = '\n',
   ['space']     = ' ',
   ['slash']     = '/',
   ['backslash'] = '\\',

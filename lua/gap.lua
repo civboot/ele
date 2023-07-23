@@ -40,6 +40,43 @@ end
 method(Gap, 'len', function(g) return #g.bot + #g.top end)
 method(Gap, 'cur', function(g) return g.bot[#g.bot]  end)
 
+method(Gap, 'get', function(g, l)
+  local bl = #g.bot
+  if l <= bl then  return g.bot[l]
+  else return g.top[#g.top - (l - bl) + 1] end
+end)
+
+-- Get the l, c with the +/- offset applied
+method(Gap, 'offset', function(g, off, l, c)
+  local len, m = g:len(), 0
+  local line = g:get(l); c = max(1, min(c, #line + 1))
+  while off > 0 do
+    line = g:get(l)
+    if nil == line then return len, #g:get(len) + 1 end
+    if c < #line then
+      m = min(off, #line - c) -- move amount
+      off, c = off - m, c + m
+    else
+      off, l, c = off - 1, l + 1, 1
+    end
+  end
+  while off < 0 do
+    line = g:get(l)
+    if nil == line then return 1, 1 end
+    c = min(#line, c)
+    print('off,l,c,line', off,l, c, line)
+    if c > 1 then
+      m = max(off, -c) -- move amount (negative)
+      print('m', m)
+      off, c = off - m, c + m
+    else
+      print('l', l)
+      off, l, c = off + 1, l - 1, CMAX
+    end
+  end
+  return l, (CMAX == c and #(g:get(l))) or c
+end)
+
 -- set the gap to the line
 method(Gap, 'set', function(g, l)
   assert(l > 0)
