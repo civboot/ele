@@ -197,10 +197,7 @@ local CMD = { -- command characters (not sequences)
   [127] = 'back',
   [ESC] = 'esc',
 }
-for _, k in pairs(CMD) do
-  term.KEY_INSERT[k] = true; VALID_KEY[k] = true
-end
-term.KEY_INSERT['esc'] = nil
+for _, k in pairs(CMD) do VALID_KEY[k] = true end
 
 term.isInsertKey = function(k)
   return 1 == #k or term.KEY_INSERT[k]

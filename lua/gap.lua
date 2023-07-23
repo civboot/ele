@@ -30,7 +30,7 @@ method(Gap, 'new', function(s)
 end)
 
 
-function _lcs(l, c, l2, c2)
+function lcs(l, c, l2, c2)
   if nil == l2 and nil == c2 then return l, nil, c, nil end
   if nil == l2 or  nil == c2 then error(
     'must provide 2 or 4 indexes (l, l2) or (l, c, l2, c2'
@@ -110,7 +110,7 @@ end)
 
 -- remove from (l, c) -> (l2, c2), return what was removed
 method(Gap, 'remove', function(g, ...)
-  local l, c, l2, c2 = _lcs(...);
+  local l, c, l2, c2 = lcs(...);
   local len = g:len()
   if l2 > len then l2, c2 = len, CMAX end
   print('removing', l, c, l2, c2)
@@ -143,7 +143,7 @@ end)
 -- get the sub-buf (slice)
 -- of lines (l, l2) or str (l, c, l2, c2)
 method(Gap, 'sub', function(g, ...)
-  local l, c, l2, c2 = _lcs(...)
+  local l, c, l2, c2 = lcs(...)
   local s = List{}
   for i=l, min(l2, #g.bot)   do s:add(g.bot[i]) end
   for i=1, min(l2-l, #g.top) do s:add(g.top[i]) end
