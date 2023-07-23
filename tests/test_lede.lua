@@ -25,17 +25,16 @@ end
 
 test('edit', nil, function()
   local e = Edit.new(nil, Buffer.new(
-    "1234567\n123\n12345\n"))
-  e:draw(1, 4)
-  assertEq(List{'1234'}, e.canvas)
-  e:draw(2, 4)
+    "1234567\n123\n12345\n"), 1, 4)
+  e:draw(); assertEq(List{'1234'}, e.canvas)
+  e.vh, e.vw = 2, 4; e:draw()
   assertEq(List{'1234', '123'}, e.canvas)
-  e.vl = 2; e:draw(2, 4)
+  e.vl = 2; e:draw()
   assertEq(List{'123', '1234'}, e.canvas)
 end)
 
 local function mockedApp(h, w, s, inputs)
-  local e = Edit.new(nil, Buffer.new(s))
+  local e = Edit.new(nil, Buffer.new(s), h, w)
   local app = Lede.new(h, w)
   app.view, app.edit = e, e
   app.inputCo = mockInputs(inputs)

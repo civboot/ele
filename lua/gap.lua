@@ -64,13 +64,10 @@ method(Gap, 'offset', function(g, off, l, c)
     line = g:get(l)
     if nil == line then return 1, 1 end
     c = min(#line, c)
-    print('off,l,c,line', off,l, c, line)
     if c > 1 then
       m = max(off, -c) -- move amount (negative)
-      print('m', m)
       off, c = off - m, c + m
     else
-      print('l', l)
       off, l, c = off + 1, l - 1, CMAX
     end
   end
@@ -85,15 +82,12 @@ method(Gap, 'set', function(g, l)
   if l < #g.bot then
     while l < #g.bot do
       local v = g.bot:pop()
-      print('<', v, l)
       if nil == v then break end
       g.top:add(v)
-      print('set top', g.top)
     end
   else -- l > #g.bot
     while l > #g.bot do
       local v = g.top:pop()
-      print('>', v, l)
       if nil == v then break end
       g.bot:add(v)
     end
@@ -113,12 +107,7 @@ method(Gap, 'remove', function(g, ...)
   local l, c, l2, c2 = lcs(...);
   local len = g:len()
   if l2 > len then l2, c2 = len, CMAX end
-  print('removing', l, c, l2, c2)
-  print('preset bot', g.bot)
-  print('preset top', g.top)
   g:set(l2)
-  print('postset bot', g.bot)
-  print('postset top', g.top)
   if l2 < l then
     if nil == c then return List{}
     else             return '' end
@@ -136,7 +125,6 @@ method(Gap, 'remove', function(g, ...)
     g.bot:add(b .. t)
   end
   if 0 == #g.bot then g.bot:add('') end
-  print('return', #rem, rem)
   return rem
 end)
 
@@ -149,7 +137,6 @@ method(Gap, 'sub', function(g, ...)
   for i=1, min(l2-l, #g.top) do s:add(g.top[i]) end
   if nil == c then -- only lines
   else
-    print('not only lines')
     s[1] = sub(s[1], c, CMAX)
     if #s >= l2 - l then s[#s] = sub(s[#s], 1, c2) end
     s = concat(s, '\n')
@@ -172,5 +159,6 @@ method(Gap, 'extend', function(g, s)
   for l in lines(s) do g.bot:add(l) end
 end)
 
+Gap.CMAX = CMAX
 gap.Gap = Gap
 return gap
