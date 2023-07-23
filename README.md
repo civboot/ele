@@ -1,4 +1,6 @@
-# shrm: the Civboot shell
+# Lede: Small Lua text editor
+
+> TODO: give a blurb about lede, mv shrm stuff to shrm project.
 
 shrm is a shell built for the [Civboot] project in pure lua.
 It is currently in the early design/implementation phase and
