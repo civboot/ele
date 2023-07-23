@@ -23,10 +23,11 @@ local MODE = { command='command', insert='insert' }
 -- Implements the core app
 
 method(Lede, '__tostring', function() return 'APP' end)
-method(Lede, 'new', function()
+method(Lede, 'new', function(h, w)
   local sts = Buffer.new()
   local sh = {
     mode='command',
+    h=h, w=w,
     buffers=List{}, bufferI=1,
     start=Epoch(0), lastDraw=Epoch(0),
     bindings=Bindings.default(),
@@ -35,7 +36,6 @@ method(Lede, 'new', function()
     inputCo=nil,
     events=LL(),
     statusBuf=sts,
-    w=100, h=50,
   }
   sh.view = Edit.new(sh, sts)
   sh.edit = sh.view
@@ -64,12 +64,25 @@ end)
 -- #####################
 --   * draw
 method(Lede, 'draw', function(self)
-  local lastDraw = shix.epoch() - self.lastDraw
-  if DRAW_PERIOD < lastDraw then
-    h, w = term.size()
-    term.clear()
-    self.view:draw(1, 1, h, w)
+  print('lede draw', self.h, self.w)
+  self.view:draw(self.h, self.w)
+end)
+
+method(Lede, 'paint', function(self)
+  -- local lastDraw = shix.epoch() - self.lastDraw
+  -- if DRAW_PERIOD < lastDraw then
+  -- end
+  term.clear()
+  local tl, tc = 1, 1
+  local th, tw = term.size()
+  assert((tl > 0) and (tc > 0) and (tw > 0) and (th > 0))
+  self.h, self.w = th, tw
+  e = self.edit
+  for l, line in ipairs(e.canvas) do
+    term.golc(tl + l - 1, tc); term.cleareol()
+    term.outf(string.sub(line, 1, e.vc + tw - 1))
   end
+  term.golc(tl + e.l - 1, tc + e.c - 1)
 end)
 
 -- #####################
@@ -197,7 +210,8 @@ bindings.BINDINGS:updateCommand{
 
 local function main()
   print"## Running (shrm ctl+q to quit)"
-  local sh = Lede.new()
+  local h, w = term.size()
+  local sh = Lede.new(h, w)
   sh:app()
 end
 

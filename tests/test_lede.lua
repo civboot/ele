@@ -19,6 +19,44 @@ test('ctrl', nil, function()
   assertEq('P', term.ctrlChar(16))
 end)
 
+local function mockInputs(inputs)
+  return List(term.parseKeys(inputs)):iterValues()
+end
+
+test('edit', nil, function()
+  local e = Edit.new(nil, Buffer.new(
+    "1234567\n123\n12345\n"))
+  e:draw(1, 4)
+  assertEq(List{'1234'}, e.canvas)
+  e:draw(2, 4)
+  assertEq(List{'1234', '123'}, e.canvas)
+  e.vl = 2; e:draw(2, 4)
+  assertEq(List{'123', '1234'}, e.canvas)
+end)
+
+local function mockedApp(h, w, s, inputs)
+  local e = Edit.new(nil, Buffer.new(s))
+  local app = Lede.new(h, w)
+  app.view, app.edit = e, e
+  app.inputCo = mockInputs(inputs)
+  app.paint = function() end
+  return app
+end
+
+test('app', nil, function()
+  local a = mockedApp(
+    1, 4, -- h, w
+    '1234567\n123\n12345\n',
+    '1 2 i 8 9')
+  local e = a.edit
+  assertEq('1', a.inputCo())
+  assertEq('2', a.inputCo())
+  a:step(); assertEq(List{'1234'}, e.canvas)
+  a:step(); assertEq(List{'8234'}, e.canvas)
+end)
+
+
+
 ---------------------------------------------
 -- These are commented out and require user-interaction
 
