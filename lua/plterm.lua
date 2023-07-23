@@ -182,25 +182,29 @@ term.parseKeys = function(key)
   end; return fixKeys(out)
 end
 
--- These tables help convert from
--- the character code (c) to what keys are
--- being hit
+term.KEY_INSERT = {
+  ['tab']       = '\t',
+  ['return'     = '\n',
+  ['space']     = ' ',
+  ['slash']     = '/',
+  ['backslash'] = '\\',
+  ['caret']     = '^',
+}
+for c in pairs(term.KEY_INSERT) do VALID_KEY[c] = true end
 local CMD = { -- command characters (not sequences)
   [  9] = 'tab',
   [ 13] = 'return',
   [127] = 'back',
   [ESC] = 'esc',
 }
-for _, c in pairs(CMD) do VALID_KEY[c] = true end
+for _, k in pairs(CMD) do
+  term.KEY_INSERT[k] = true; VALID_KEY[k] = true
+end
+term.KEY_INSERT['esc'] = nil
 
-term.KEY_LITERAL = {
-  ['tab']       = '\t',
-  ['space']     = ' ',
-  ['slash']     = '/',
-  ['backslash'] = '\\',
-  ['caret']     = '^',
-}
-for c in pairs(term.KEY_LITERAL) do VALID_KEY[c] = true end
+term.isInsertKey = function(k)
+  return 1 == #k or term.KEY_INSERT[k]
+end
 
 local isdigitsc = function(c)
   -- return true if c is the code of a digit or ';'

@@ -44,6 +44,11 @@ local Edit = struct('Edit', {
   -- where this is contained
   -- (Shrm, Rows, Cols)
   'container',
+  'bindings',
+})
+
+local Bindings = struct('Bindings', {
+  {'insert', Map}, {'command', Map},
 })
 
 local Shrm = struct('Shrm', {
@@ -52,6 +57,8 @@ local Shrm = struct('Shrm', {
   {'buffers', List}, {'bufferI', Num},
   {'epoch', nil, shix.epoch},
   {'start', Epoch}, {'lastDraw', Epoch},
+  {'bindings', Bindings},
+  {'chord', Map, false}, {'chordKeys', List},
 
   {'inputCo'},
 
@@ -79,26 +86,31 @@ end)
 -- #####################
 -- # Key Bindings
 
--- the fields are type KeyBindings or Function
-local KeyBindings = struct('KeyBindings', {'u', 'cmd', 'ctl'})
-method(KeyBindings, 'new', function()
-  return KeyBindings{u={}, cmd={}, ctl={}}
-end)
-local Bindings = struct('Bindings', {
-  {'insert', KeyBindings}, {'command', KeyBindings},
-})
-
-method(Bindings, 'update', function(b, mode, ty_, bindings)
-  for key, fn in pairs(bindings) do
-    b:set(mode, ty_, key, fn)
+method(Bindings, '_update', function(b, mode, bindings, checker)
+  local bm = b[mode]
+  for keys, fn in pairs(bindings) do
+    assert(type(fn) == 'function')
+    keys = term.parseKeys(keys)
+    if checker then
+      for _, k in ipairs(keys) do checker(k) end
+    end
+    bm:setPath(keys, fn)
   end
+end)
+method(Bindings, 'updateInsert', function(b, bindings)
+  return b:_update('insert', bindings, function(k)
+    if term.isInsertKey(k) then error(
+      'bound visible in insert mode: '..k
+    )end
+  end)
+end)
+method(Bindings, 'updateCommand', function(b, bindings)
+  return b:_update('command', bindings)
 end)
 
 -- default key bindings (updated in Default Bindings section)
-local _keyBindings = KeyBindings{u={}, cmd={}, ctl={}}
 local BINDINGS = Bindings{
-  insert = deepcopy(_keyBindings),
-  command = deepcopy(_keyBindings),
+  insert = Map{}, command = Map{},
 }
 method(Bindings, 'default', function() return deepcopy(BINDINGS) end)
 
@@ -107,13 +119,16 @@ method(Bindings, 'default', function() return deepcopy(BINDINGS) end)
 -- Implements the core app
 
 
-method(Shrm, '__tostring', function() return 'Shrm' end)
+method(Shrm, '__tostring', function() return 'APP' end)
 method(Shrm, 'new', function()
   local sts = Buffer.new()
   local sh = {
     mode='command',
     buffers=List{}, bufferI=1,
     start=Epoch(0), lastDraw=Epoch(0),
+    bindings=Bindings.default(),
+    chord=nil, chordKeys=List{},
+
     inputCo=nil,
     events=LL(),
     statusBuf=sts,
@@ -122,6 +137,14 @@ method(Shrm, 'new', function()
   sh.view = Edit{buf=sts, l=1, c=1, vl=1, vc=1, container=sh}
   sh.inputCo  = term.input()
   return setmetatable(sh, Shrm)
+end)
+method(Shrm, 'insertMode', function(self)
+  self.mod = 'insert'
+  self.chord = nil
+end)
+method(Shrm, 'commandMode', function(self)
+  self.mode = 'command'
+  self.chord = nil
 end)
 
 -- #####################
@@ -154,23 +177,49 @@ end)
 
 -- #####################
 --   * update
-local _UPDATE_MODE = {
-  command=function(shrm, ev)
-  end,
-  insert=function(shrm, ev)
-    -- print('Doing insert', ev)
-  end,
-}
+
+method(Shrm, 'unrecognized', function(self, keys)
+  self.status('unrecognized chord: ' .. concat(keys, ' '))
+end)
+
+method(Shrm, 'defaultAction', function(self, keys)
+  if self.mode == 'command' then
+    self:unrecognized(keys)
+  elseif self.mode == 'insert' then
+    if not term.isInsertKey(k) then
+      self:unrecognized(keys)
+    else
+      self:view():insert(KEY_INSERT[k] or k)
+    end
+  end
+end)
+
 method(Shrm, 'update', function(self)
   debug('update loop')
   while not self.events:isEmpty() do
-    if self:loopReturn() then return end
     local ev = self.events:popBack()
+    local action = nil
+    if type(ev) == 'string' then
+      self.chordKeys:add(ev)
+      self.chord = self.chord or self.bindings
+      action = self.chord[ev]
+      if not action then
+        local keys = self.chordKeys
+        self.chordKeys = List{}
+        self:defaultAction(keys)
+      elseif 'function' == type(action) then -- correct
+      elseif Map == ty(action) then
+        self.chord, action = action, nil
+        self.chordKeys = self.chordKeys or List{}
+        self.chordKeys:add(ev)
+      else error(action) end
+    else error(ev) end
 
-
-    self:status({
-      'Event[', self.mode, ']: ', tostring(ev), '\n'})
-    _UPDATE_MODE[self.mode](self, ev)
+    if action then action(self)
+    else self:status({
+      'NoAction[', self.mode, ']: ', tostring(ev), '\n'})
+    end
+    if self:loopReturn() then break end
   end
   debug('update end')
 end)
@@ -181,13 +230,14 @@ end)
 method(Shrm, 'step', function(self)
   local key = self.inputCo()
   debug('got key', key)
-  if key == '^Q' then
-    debug('\nctl+Q received, ending\n')
+  if key == '^C' then
+    debug('\nctl+C received, ending\n')
     return false
   end
   if key then self.events:addFront(key) end
   debug('calling update')
   self:update()
+  if self.mode == 'quit' then return false end
   self:draw()
   return true
 end)
@@ -210,19 +260,17 @@ end)
 -- # Default Bindings
 
 -- -- Insert Mode
--- BINDINGS:update('insert', 'ctl', {
---   j=function(app) app.mode = 'command' end,
---   q=function(app) app.mode = 'quit'    end,
--- })
--- BINDINGS:update('insert', 'cmd', {
---   esc=function(app) app.mode = 'command' end,
---   q=function(app) app.mode = 'quit'      end,
--- })
--- 
--- -- Command Mode
--- BINDINGS:update('command', 'u', {
---   i=function(app) app.mode = 'insert'    end,
--- })
+BINDINGS:updateInsert{
+  ['^Q ^Q'] = function(app) app.mode = 'quit'    end,
+  ['^J']    = function(app) app.insertMode()     end,
+  ['esc']   = function(app) app.commandMode()    end,
+}
+
+-- Command Mode
+BINDINGS:updateCommand{
+  ['^Q ^Q'] = function(app) app.mode = 'quit'    end,
+  i         = function(app) app.commandMode()    end,
+}
 
 -- #####################
 -- # Main
