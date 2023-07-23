@@ -1,6 +1,6 @@
 local civ = require'civ':grequire()
 civ.TESTING = true
-grequire'shrm'
+grequire'lede'
 local shix = require'shix'
 local term = require'plterm'
 
