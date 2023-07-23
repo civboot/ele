@@ -9,5 +9,5 @@ build:
 	LUA_PATH=${LP} lua tests/test_lede.lua
 
 run:
-	LUA_PATH=${LP} lua lua/shrm.lua
+	LUA_PATH=${LP} lua lua/lede.lua
 

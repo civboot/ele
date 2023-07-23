@@ -1,10 +1,12 @@
 require'civ':grequire()
 grequire'types'
+local posix = require'posix'
 local shix = require'shix'
 local term = require'plterm'
 local gap  = require'gap'
-local posix = require'posix'
+local edit = require'edit'
 local buffer = require'buffer'
+local bindings = require'bindings'
 
 local yld = coroutine.yield
 local outf = term.outf
@@ -15,36 +17,6 @@ local M = {} -- module
 local DRAW_PERIOD = Duration(0.03)
 local MODE = { command='command', insert='insert' }
 
--- #####################
--- # Key Bindings
-method(Bindings, '_update', function(b, mode, bindings, checker)
-  local bm = b[mode]
-  for keys, act in pairs(bindings) do
-    assertEq(ty(act), Action)
-    assertEq(ty(act.fn), Fn)
-    keys = term.parseKeys(keys)
-    if checker then
-      for _, k in ipairs(keys) do checker(k) end
-    end
-    bm:setPath(keys, act)
-  end
-end)
-method(Bindings, 'updateInsert', function(b, bindings)
-  return b:_update('insert', bindings, function(k)
-    if term.isInsertKey(k) then error(
-      'bound visible in insert mode: '..k
-    )end
-  end)
-end)
-method(Bindings, 'updateCommand', function(b, bindings)
-  return b:_update('command', bindings)
-end)
-
--- default key bindings (updated in Default Bindings section)
-local BINDINGS = Bindings{
-  insert = Map{}, command = Map{},
-}
-method(Bindings, 'default', function() return deepcopy(BINDINGS) end)
 
 -- #####################
 -- # Lede struct
@@ -65,7 +37,7 @@ method(Lede, 'new', function()
     statusBuf=sts,
     w=100, h=50,
   }
-  sh.view = Edit{buf=sts, l=1, c=1, vl=1, vc=1, container=sh}
+  sh.view = Edit.new(sh, sts)
   sh.edit = sh.view
   sh.inputCo  = term.input()
   return setmetatable(sh, Lede)
@@ -208,14 +180,14 @@ M.InsertAction = Action{
 -- # Default Bindings
 
 -- -- Insert Mode
-BINDINGS:updateInsert{
+bindings.BINDINGS:updateInsert{
   ['^Q ^Q'] = M.QuitAction,
   ['^J']    = M.CommandAction,
   ['esc']   = M.CommandAction,
 }
 
 -- Command Mode
-BINDINGS:updateCommand{
+bindings.BINDINGS:updateCommand{
   ['^Q ^Q'] = M.QuitAction,
   i         = M.InsertAction,
 }
