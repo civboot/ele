@@ -40,6 +40,10 @@ local function mockedApp(h, w, s, inputs)
   app.view, app.edit = e, e
   app.inputCo = mockInputs(inputs)
   app.paint = function() end
+  app.status = function(t, ...)
+    if ty(t) == Tbl then print(concat(t))
+    else print(t, ...) end
+  end
   return app
 end
 
@@ -48,11 +52,16 @@ test('app', nil, function()
     1, 4, -- h, w
     '1234567\n123\n12345\n',
     '1 2 i 8 9')
-  local e = a.edit
   assertEq('1', a.inputCo())
   assertEq('2', a.inputCo())
+  local e = a.edit;
+  assertEq(1, e.l); assertEq(1, e.c)
   a:step(); assertEq(List{'1234'}, e.canvas)
-  a:step(); assertEq(List{'8234'}, e.canvas)
+            assertEq(1, e.l); assertEq(1, e.c)
+  a:step(); assertEq(List{'8123'}, e.canvas)
+            assertEq(1, e.l); assertEq(2, e.c)
+  a:step(); assertEq(List{'8912'}, e.canvas)
+            assertEq(1, e.l); assertEq(3, e.c)
 end)
 
 

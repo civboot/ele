@@ -114,27 +114,25 @@ method(Lede, 'update', function(self)
   debug('update loop')
   while not self.events:isEmpty() do
     local ev = self.events:popBack()
-    local action = nil
-    if type(ev) == 'string' then
-      self.chordKeys:add(ev)
-      self.chord = self.chord or self.bindings[self.mode]
-      action = self.chord[ev]
-      if not action then
-        local keys = self.chordKeys
-        self.chordKeys = List{}
-        self:defaultAction(keys)
-      elseif Action == ty(action) then -- found, continue
-      elseif Map == ty(action) then
-        self.chord, action = action, nil
-        self.chordKeys = self.chordKeys or List{}
-        self.chordKeys:add(ev)
-      else error(action) end
-    else error(ev) end
+    assert(type(ev) == 'string', ev)
 
-    if action then action.fn(self, action)
-    else self:status({
-      'NoAction[', self.mode, ']: ', tostring(ev)})
-    end
+    local action = nil
+    self.chordKeys:add(ev)
+    self.chord = self.chord or self.bindings[self.mode]
+    action = self.chord[ev]
+    if not action then
+      local keys = self.chordKeys
+      self.chordKeys = List{}
+      self:defaultAction(keys)
+    elseif Action == ty(action) then -- found, continue
+      self.chord = nil
+      self.chordKeys = List{}
+      action.fn(self, action)
+    elseif Map == ty(action) then
+      self.chord, action = action, nil
+      self.chordKeys = self.chordKeys or List{}
+      self.chordKeys:add(ev)
+    else error(action) end
     if self:loopReturn() then break end
   end
   debug('update end')
