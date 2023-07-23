@@ -88,6 +88,7 @@ local function _testOffset(g)
   l, c = g:offset(-5, 1, 1)
   assertEq(1, l); assertEq(1, c)
 end
+
 test('offset', nil, function()
   local g = Gap.new('12345\n6789\n98765\n')
   _testOffset(g)

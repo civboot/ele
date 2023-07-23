@@ -8,10 +8,6 @@ local mockKeys = function()
 
 end
 
-local function sleep()
-  shix.sleep(Duration(0.9))
-end
-
 test('keypress', nil, function()
   assertEq({'a', 'b'},  term.parseKeys('a b'))
   assertEq({'a', '^B'}, term.parseKeys('a ^b'))
@@ -22,6 +18,14 @@ end)
 test('ctrl', nil, function()
   assertEq('P', term.ctrlChar(16))
 end)
+
+---------------------------------------------
+-- These are commented out and require user-interaction
+
+local function sleep()
+  shix.sleep(Duration(0.9))
+end
+
 
 local TEST_MSG = [[
 *123456789*123456789*123456789*123456789*123456789*

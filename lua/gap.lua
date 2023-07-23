@@ -79,6 +79,7 @@ end)
 
 -- set the gap to the line
 method(Gap, 'set', function(g, l)
+  l = l or (#g.bot + #g.top)
   assert(l > 0)
   if l == #g.bot then return end -- do nothing
   if l < #g.bot then
@@ -156,7 +157,9 @@ method(Gap, 'sub', function(g, ...)
   return s
 end)
 
-method(Gap, 'append', function(g, s) g:insert(s, g:len(), CMAX) end)
+method(Gap, 'append', function(g, s)
+  g:set(); g.bot:add(s)
+end)
 
 method(Gap, '__tostring', function(g)
   local bot = concat(g.bot, '\n')

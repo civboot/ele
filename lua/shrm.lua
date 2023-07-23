@@ -152,6 +152,7 @@ end)
 method(Shrm, 'status', function(self, m)
   if type(m) ~= 'string' then m = concat(m) end
   self.statusBuf.gap:append(m)
+  term.debug('Status: ', m)
 end)
 method(Shrm, 'spent', function(self)
   return shix.epoch() - self.start
@@ -179,7 +180,7 @@ end)
 --   * update
 
 method(Shrm, 'unrecognized', function(self, keys)
-  self.status('unrecognized chord: ' .. concat(keys, ' '))
+  self:status('unrecognized chord: ' .. concat(keys, ' '))
 end)
 
 method(Shrm, 'defaultAction', function(self, keys)
@@ -201,7 +202,7 @@ method(Shrm, 'update', function(self)
     local action = nil
     if type(ev) == 'string' then
       self.chordKeys:add(ev)
-      self.chord = self.chord or self.bindings
+      self.chord = self.chord or self.bindings[self.mode]
       action = self.chord[ev]
       if not action then
         local keys = self.chordKeys
@@ -217,7 +218,7 @@ method(Shrm, 'update', function(self)
 
     if action then action(self)
     else self:status({
-      'NoAction[', self.mode, ']: ', tostring(ev), '\n'})
+      'NoAction[', self.mode, ']: ', tostring(ev)})
     end
     if self:loopReturn() then break end
   end
@@ -229,6 +230,7 @@ end)
 --   * step: run all pieces
 method(Shrm, 'step', function(self)
   local key = self.inputCo()
+  self.start = shix.epoch()
   debug('got key', key)
   if key == '^C' then
     debug('\nctl+C received, ending\n')
@@ -245,12 +247,7 @@ end)
 method(Shrm, 'app', function(self)
   term.enterRawMode()
   while true do
-    self.start = shix.epoch()
     if not self:step() then break end
-    local spent = self:spent()
-    if spent < DRAW_PERIOD then
-      shix.sleep(DRAW_PERIOD - spent)
-    end
   end
   term.exitRawMode()
   print('\nExited app')
