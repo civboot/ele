@@ -72,19 +72,18 @@ method(Lede, 'paint', function(self)
   -- if DRAW_PERIOD < lastDraw then
   -- end
   term.clear()
+  local th, tw = term.size(); assert((tw > 0) and (th > 0))
+  self.h, self.w = th, tw
+  e.vh, e.vw = th, tw
+
   local tl, tc = 1, 1
+  local e = self.edit
   for l, line in ipairs(e.canvas) do
     term.golc(tl + l - 1, tc);
     term.cleareol()
     term.outf(string.sub(line, 1, tw - 1))
   end
   term.golc(tl + e.l - 1, tc + e.c - 1)
-
-  -- update the widths/heights for next draw/paint
-  local th, tw = term.size(); assert((tw > 0) and (th > 0))
-  self.h, self.w = th, tw
-  e = self.edit
-  e.vh, e.vw = th, tw
 end)
 
 -- #####################

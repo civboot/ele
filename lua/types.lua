@@ -3,6 +3,10 @@ local gap  = require'gap'
 
 local M = {}
 
+-- Event object, sent to update method which can emit new events
+M.Event = civ.newTy('Event')
+M.Event.__index = civ.methIndex
+
 M.Change = struct('Diff', {
   {'l', Num},  {'c', Num},                -- start of action
   {'l2', Num, false}, {'c2', Num, false}, -- (optional) end
@@ -58,5 +62,21 @@ M.Lede = struct('Lede', {
 
   {'statusBuf', Buffer},
 })
+
+M.Model = struct('Model', {
+  {'mode', Str}, -- the UI mode (command, insert)
+  {'h', Num}, {'w', Num}, -- window height/width
+  'view', -- Edit or Cols or Rows
+  'edit', -- The active editor
+  {'buffers', List}, {'bufferI', Num},
+  {'start', Epoch}, {'lastDraw', Epoch},
+  {'bindings', Bindings},
+  {'chord', Map, false}, {'chordKeys', List},
+
+  {'inputCo'},
+
+  {'statusBuf', Buffer},
+})
+
 
 return M
