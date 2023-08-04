@@ -1,5 +1,6 @@
 require'civ':grequire()
 grequire'types'
+local action = require'action'
 local posix = require'posix'
 local shix = require'shix'
 local term = require'plterm'
@@ -16,6 +17,7 @@ local M = {} -- module
 
 local DRAW_PERIOD = Duration(0.03)
 local MODE = { command='command', insert='insert' }
+local Actions = action.Actions
 
 
 -- #####################
@@ -25,7 +27,7 @@ local MODE = { command='command', insert='insert' }
 method(Lede, '__tostring', function() return 'APP' end)
 method(Lede, 'new', function(h, w)
   local sts = Buffer.new()
-  local sh = {
+  local mdl = {
     mode='command',
     h=h, w=w,
     buffers=List{}, bufferI=1,
@@ -37,10 +39,10 @@ method(Lede, 'new', function(h, w)
     events=LL(),
     statusBuf=sts,
   }
-  sh.view = Edit.new(sh, sts, h, w)
-  sh.edit = sh.view
-  sh.inputCo  = term.input()
-  return setmetatable(sh, Lede)
+  mdl.view = Edit.new(mdl, sts, h, w)
+  mdl.edit = mdl.view
+  mdl.inputCo  = term.input()
+  return setmetatable(mdl, Lede)
 end)
 
 -- #####################
@@ -59,6 +61,11 @@ method(Lede, 'loopReturn', function(self)
   --   return true
   -- end
   return false
+end)
+method(Lede, 'getBinding', function(self, key)
+  if self.chord then return self.chord[key] end
+  -- TODO: buffer bindings
+  return self.bindings[self.mode][key]
 end)
 
 -- #####################
@@ -114,27 +121,15 @@ end)
 method(Lede, 'update', function(self)
   debug('update loop')
   while not self.events:isEmpty() do
-    local ev = self.events:popBack()
-    assert(type(ev) == 'string', ev)
-
-    local action = nil
-    self.chordKeys:add(ev)
-    self.chord = self.chord or self.bindings[self.mode]
-    action = self.chord[ev]
-    if not action then
-      local keys = self.chordKeys
-      self.chordKeys = List{}
-      self:defaultAction(keys)
-    elseif Action == ty(action) then -- found, continue
-      self.chord = nil
-      self.chordKeys = List{}
-      action.fn(self, action)
-    elseif Map == ty(action) then
-      self.chord, action = action, nil
-      self.chordKeys = self.chordKeys or List{}
-      self.chordKeys:add(ev)
-    else error(action) end
-    if self:loopReturn() then break end
+    local ev = self.events:popBack(); assert((ev.depth or 1) <= 12)
+    local evName = assert(ev[1])
+    local act = Actions[evName]
+    if not act then error('unknown action: ' .. tfmt(ev)) end
+    local events = act.fn(self, ev) or {}
+    while #events > 0 do
+      local e = table.remove(events); e.depth = (ev.depth or 1) + 1
+      self.events:addBack(e)
+    end
   end
   debug('update end')
 end)
@@ -150,7 +145,7 @@ method(Lede, 'step', function(self)
     debug('\nctl+C received, ending\n')
     return false
   end
-  if key then self.events:addFront(key) end
+  if key then self.events:addFront({'rawKey', key=key}) end
   debug('calling update')
   self:update()
   if self.mode == 'quit' then return false end
@@ -170,39 +165,20 @@ end)
 
 -- #####################
 -- # Actions
-M.QuitAction = Action{
-  name='quit', brief='quit the application',
-  fn = function(app) app.mode = 'quit'    end,
-}
-M.CommandAction = Action{
-  name='command', brief='go to command mode',
-  fn = function(app)
-    app.mode = 'command'
-    app.chord = nil
-  end,
-}
-M.InsertAction = Action{
-  name='insert', brief='go to insert mode',
-  fn = function(app)
-    app.mode = 'insert'
-    app.chord = nil
-  end,
-}
-
 -- #####################
 -- # Default Bindings
 
 -- -- Insert Mode
 bindings.BINDINGS:updateInsert{
-  ['^Q ^Q'] = M.QuitAction,
-  ['^J']    = M.CommandAction,
-  ['esc']   = M.CommandAction,
+  ['^Q ^Q'] = action.Actions.quit,
+  ['^J']    = action.Actions.command,
+  ['esc']   = action.Actions.command,
 }
 
 -- Command Mode
 bindings.BINDINGS:updateCommand{
-  ['^Q ^Q'] = M.QuitAction,
-  i         = M.InsertAction,
+  ['^Q ^Q'] = action.Actions.quit,
+  i         = action.Actions.insert,
 }
 
 -- #####################

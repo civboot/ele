@@ -6,6 +6,9 @@ local M = {}
 -- Event object, sent to update method which can emit new events
 M.Event = civ.newTy('Event')
 M.Event.__index = civ.methIndex
+civ.constructor(M.Event, function(ty_, ev)
+  assert(ev[1], "missing event name as index 1: " + tfmt(ev))
+end)
 
 M.Change = struct('Diff', {
   {'l', Num},  {'c', Num},                -- start of action

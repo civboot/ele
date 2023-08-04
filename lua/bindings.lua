@@ -1,10 +1,10 @@
+-- #####################
+-- # Keyboard Bindings
 grequire'types'
 local term = require'plterm'
 
 local M = {}
 
--- #####################
--- # Key Bindings
 method(Bindings, '_update', function(b, mode, bindings, checker)
   local bm = b[mode]
   for keys, act in pairs(bindings) do
