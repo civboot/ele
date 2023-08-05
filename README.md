@@ -14,20 +14,15 @@ It ships with:
 
 ## Basic Architecture
 Ele is architected using the MVI (model-view-intent) architecture, also known as
-the "React architecture" from the web library of the same name.  This
-architecture is based on a "stream" of serializable (human-readable) events that
-are handled sequentially, with all state change occuring as the result of
-handling events through registered `Action` functions. The Action functions can
-both modify the model (state) and emit new events.
-
-The basic architecture is:
+the "React architecture" from the web library of the same name.
 
 ```
-model = Model.new{}
-events = LL{}
+model = Model.new{} -- holds all state
 while true do
-    model:update(events)  -- process events until empty
-    events = model:view() -- asyncronous view and event receiving
+  -- update view and receive new events (no state modification)
+  events = model:view()
+  -- process events until empty (modifying model's state)
+  model:update(events)
 end
 ```
 
@@ -54,7 +49,7 @@ Where:
 ## Shele: a Lua shell
 
 Shele is a shell built for the [Civboot] project in pure lua. It is shipped with
-Ele since
+Ele because:
 
 1. It was the primary inspiration for creating Ele
 2. Like Ele it is small and it provides a good frame of reference on how to
@@ -72,7 +67,7 @@ A "block" is defined as text which is not separated by newlines.
 ```
 -- a block (executed together with cursor on them and ctrl+enter)
 sh'do something';  x = sh'do something else'
-sh('do something '..x
+sh('do something '..x)
 
 -- another block
 sh'do another thing';  x = sh'do something else'
@@ -109,8 +104,8 @@ sh('do something '..x
 When you use ctrl+o on (for example) the OUT line it jumps to the output file,
 which you can navigate/copy/etc.
 
-If you use ctrl+t+(optional number)+enter on the OUT line it expands the tail
-to the number given, or the system default (10 or so). Pressing ctrl+t again
+If you use (optional number)+t+enter on the OUT line it expands the tail
+to the number given, or the system default (10 or so). Pressing t again
 will close the block.
 
 ctrl+h can be equivalently used to expand the head. Doing both will do both
@@ -121,7 +116,8 @@ and the info will say (head+tail)
 sh'do something';  x = sh'do something else'
 sh('do something '..x
 -- MSG: error message or return code
---[==[ OUT: "/tmp/shele/akjbska-out" (tail)
+-- OUT: /tmp/shele/akjbska-out (tail 2)
+--[==[
   ... 100 lines ...
 this is the end of the file
 some error you want to see is here for example
