@@ -1,3 +1,7 @@
+-- #####################
+-- # Model struct
+-- Implements the core app
+
 require'civ':grequire()
 grequire'types'
 local action = require'action'
@@ -20,12 +24,9 @@ local MODE = { command='command', insert='insert' }
 local Actions = action.Actions
 
 
--- #####################
--- # Lede struct
--- Implements the core app
 
-method(Lede, '__tostring', function() return 'APP' end)
-method(Lede, 'new', function(h, w)
+method(Model, '__tostring', function() return 'APP' end)
+method(Model, 'new', function(h, w)
   local sts = Buffer.new()
   local mdl = {
     mode='command',
@@ -42,27 +43,27 @@ method(Lede, 'new', function(h, w)
   mdl.view = Edit.new(mdl, sts, h, w)
   mdl.edit = mdl.view
   mdl.inputCo  = term.input()
-  return setmetatable(mdl, Lede)
+  return setmetatable(mdl, Model)
 end)
 
 -- #####################
 -- # Utility methods
-method(Lede, 'status', function(self, m)
+method(Model, 'status', function(self, m)
   if type(m) ~= 'string' then m = concat(m) end
   self.statusBuf.gap:append(m)
   term.debug('Status: ', m)
 end)
-method(Lede, 'spent', function(self)
+method(Model, 'spent', function(self)
   return shix.epoch() - self.start
 end)
-method(Lede, 'loopReturn', function(self)
+method(Model, 'loopReturn', function(self)
   -- local spent = self:spent()
   -- if DRAW_PERIOD < spent then
   --   return true
   -- end
   return false
 end)
-method(Lede, 'getBinding', function(self, key)
+method(Model, 'getBinding', function(self, key)
   if self.chord then return self.chord[key] end
   -- TODO: buffer bindings
   return self.bindings[self.mode][key]
@@ -70,21 +71,20 @@ end)
 
 -- #####################
 --   * draw
-method(Lede, 'draw', function(self)
+method(Model, 'draw', function(self)
   self.view:draw(self.h, self.w)
 end)
 
-method(Lede, 'paint', function(self)
+method(Model, 'paint', function(self)
   -- local lastDraw = shix.epoch() - self.lastDraw
   -- if DRAW_PERIOD < lastDraw then
   -- end
   term.clear()
   local th, tw = term.size(); assert((tw > 0) and (th > 0))
   self.h, self.w = th, tw
-  e.vh, e.vw = th, tw
+  local e = self.edit; e.vh, e.vw = th, tw
 
   local tl, tc = 1, 1
-  local e = self.edit
   for l, line in ipairs(e.canvas) do
     term.golc(tl + l - 1, tc);
     term.cleareol()
@@ -96,11 +96,11 @@ end)
 -- #####################
 --   * update
 
-method(Lede, 'unrecognized', function(self, keys)
+method(Model, 'unrecognized', function(self, keys)
   self:status('unrecognized chord: ' .. concat(keys, ' '))
 end)
 
-method(Lede, 'defaultAction', function(self, keys)
+method(Model, 'defaultAction', function(self, keys)
   if self.mode == 'command' then
     self:unrecognized(keys)
   elseif self.mode == 'insert' then
@@ -118,7 +118,7 @@ method(Lede, 'defaultAction', function(self, keys)
   end
 end)
 
-method(Lede, 'update', function(self)
+method(Model, 'update', function(self)
   debug('update loop')
   while not self.events:isEmpty() do
     local ev = self.events:popBack(); assert((ev.depth or 1) <= 12)
@@ -137,7 +137,7 @@ end)
 
 -- #####################
 --   * step: run all pieces
-method(Lede, 'step', function(self)
+method(Model, 'step', function(self)
   local key = self.inputCo()
   self.start = shix.epoch()
   debug('got key', key)
@@ -153,7 +153,7 @@ method(Lede, 'step', function(self)
   return true
 end)
 
-method(Lede, 'app', function(self)
+method(Model, 'app', function(self)
   print('\nEntering raw mode')
   term.enterRawMode()
   while true do
@@ -186,7 +186,7 @@ bindings.BINDINGS:updateCommand{
 
 local function main()
   print"## Running (shrm ctl+q to quit)"
-  local sh = Lede.new(20, 10)
+  local sh = Model.new(20, 10)
   sh:app()
 end
 

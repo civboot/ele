@@ -1,6 +1,6 @@
 local civ = require'civ':grequire()
 civ.TESTING = true
-grequire'lede'
+grequire'model'
 local shix = require'shix'
 local term = require'plterm'
 
@@ -35,7 +35,7 @@ end)
 
 local function mockedApp(h, w, s, inputs)
   local e = Edit.new(nil, Buffer.new(s), h, w)
-  local app = Lede.new(h, w)
+  local app = Model.new(h, w)
   app.view, app.edit = e, e
   app.inputCo = mockInputs(inputs)
   app.paint = function() end
@@ -89,7 +89,7 @@ local TEST_MSG = [[
 
 --[[
 test('display', nil, function()
-  local sh = Lede.new()
+  local sh = Model.new()
   local e = sh.view
   e.buf.gap:insert(TEST_MSG, 1, 1)
   e.l, e.c = 5, 15
