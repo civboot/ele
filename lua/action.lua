@@ -2,9 +2,7 @@ local civ  = require'civ':grequire()
 grequire'types'
 local term = require'plterm'
 
-
 local mod = {}
-
 mod.Actions = {}
 mod.actionStruct = getmetatable(Action).__call
 constructor(Action, function(ty_, act)
@@ -15,6 +13,9 @@ constructor(Action, function(ty_, act)
   mod.Actions[name] = mod.actionStruct(ty_, act)
   return mod.Actions[name]
 end)
+
+---------------------------------
+-- Default Actions
 
 Action{
   name='rawKey', brief='the raw key handler (directly handles all key events)',

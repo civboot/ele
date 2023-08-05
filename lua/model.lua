@@ -23,8 +23,6 @@ local DRAW_PERIOD = Duration(0.03)
 local MODE = { command='command', insert='insert' }
 local Actions = action.Actions
 
-
-
 method(Model, '__tostring', function() return 'APP' end)
 method(Model, 'new', function(h, w)
   local sts = Buffer.new()
