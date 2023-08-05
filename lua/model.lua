@@ -70,7 +70,8 @@ end)
 -- #####################
 --   * draw
 method(Model, 'draw', function(self)
-  self.view:draw(self.h, self.w)
+  update(self.view, {vl=1, vc=1, vh=self.h, vw=self.w})
+  self.view:draw()
 end)
 
 method(Model, 'paint', function(self)
@@ -81,14 +82,8 @@ method(Model, 'paint', function(self)
   local th, tw = term.size(); assert((tw > 0) and (th > 0))
   self.h, self.w = th, tw
   local e = self.edit; e.vh, e.vw = th, tw
-
-  local tl, tc = 1, 1
-  for l, line in ipairs(e.canvas) do
-    term.golc(tl + l - 1, tc);
-    term.cleareol()
-    term.outf(string.sub(line, 1, tw - 1))
-  end
-  term.golc(tl + e.l - 1, tc + e.c - 1)
+  e:paint(1, 1)
+  term.golc(e.vl + e.l - 1, e.vc + e.c - 1)
 end)
 
 -- #####################

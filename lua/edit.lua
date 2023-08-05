@@ -9,12 +9,16 @@ M = {}
 -- Implements an edit view and state
 method(Edit, 'new', function(container, buf, h, w)
   return Edit{
+    id=nextViewId(),
     buf=buf, l=1, c=1,
     vh=h, vw=w,
     vl=1, vc=1,
     container=container,
     canvas=nil,
   }
+end)
+method(Edit, 'copy', function(e)
+  return copy(e, {id=nextViewId()})
 end)
 
 -- These are going to track state/cursor/etc
@@ -39,7 +43,15 @@ end)
 method(Edit, 'draw', function(e)
   e.canvas = List{}
   for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.vh - 1)) do
-    e.canvas:add(string.sub(line, e.vc, e.vc + e.vw - 1))
+    local s = string.sub(line, e.vc, e.vc + e.vw - 1)
+    e.canvas:add(table.concat(fillBuf({s}, e.vw - #s)))
+  end
+end)
+
+method(Edit, 'paint', function(e, tl, tc)
+  for l, line in ipairs(e.canvas) do
+    term.golc(tl + l - 1, tc);
+    term.outf(string.sub(line, 1, e.vw - 1))
   end
 end)
 
