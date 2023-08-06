@@ -247,6 +247,7 @@ end)
 FakeTerm.__index = civ.methIndex
 methods(FakeTerm, {
   clear=function(t)
+    t:golc(1, 1)
     for l=1, t.h do
       local line = {}; for c=1, t.w do line[c] = '' end
       t[l] = line
@@ -256,6 +257,7 @@ methods(FakeTerm, {
     t.h, t.w = h, w
     t:clear()
   end,
+  golc=function(t, l, c) t.l, t.c = l, c end,
   cleareol=function(t, l, c)
     t:assertLC(l, c)
     local line = t[l]

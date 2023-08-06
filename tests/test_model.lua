@@ -29,7 +29,7 @@ test('edit', nil, function()
   e.th, e.tw = 2, 4; t:init(2, 4)
   e:draw(t, true)
   assertEq(List{'1234', '123'}, e.canvas)
-  e.vl = 2; e:draw(t, true)
+  e.l, e.vl = 2, 2; e:draw(t, true)
   assertEq(List{'123', '1234'}, e.canvas)
   assertEq("123\n1234", tostring(t))
 end)
@@ -96,18 +96,18 @@ test('move', nil, function()
   m:step(); assertEq(3, e.l); assertEq(3, e.c)
 
   -- now test boundaries
-  m.inputCo = mockInputs('j l k l') -- down right up right
-  m:step(); assertEq(3, e.l); assertEq(3, e.c) -- down (does nothing)
-  m:step(); assertEq(3, e.l); assertEq(4, e.c)
-  m:step(); assertEq(2, e.l); assertEq(4, e.c) -- up    (column overflow keep)
-  m:step(); assertEq(2, e.l); assertEq(3, e.c) -- right (column overflow set)
+  m.inputCo = mockInputs('j k l') -- down right up right
+  m:step(); assertEq(3, e.l); assertEq(6, e.c) -- down (does nothing)
+  m:step(); assertEq(2, e.l); assertEq(6, e.c) -- up    (column overflow keep)
+  m:step(); assertEq(2, e.l); assertEq(4, e.c) -- right (column overflow set)
 
   -- now test insert on overflow
   m.inputCo = mockInputs('k l l l j i x') -- up 3*right down insert-x
-  e.vl = 2
-  steps(m, 4); assertEq(1, e.l); assertEq(6, e.c); -- k l l l
-  m:step();    assertEq(2, e.l); assertEq(6, e.c); -- j
-  m:step();    assertEq(2, e.l); assertEq(6, e.c); -- i
+  steps(m, 4); assertEq(1, e.l); assertEq(7, e.c); -- k l l l
+               assertEq(1, e.vl)
+  m:step();    assertEq(2, e.l); assertEq(7, e.c); -- j
+               assertEq(2, e.vl)
+  m:step();    assertEq(2, e.l); assertEq(7, e.c); -- i
   m:step();    assertEq(2, e.l); assertEq(5, e.c); -- x
                assertEq(List{'123x'}, e.canvas)
 end)

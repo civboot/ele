@@ -87,15 +87,21 @@ Action{
 }
 Action{
   name='left', brief='move cursor left',
-  fn = function(mdl) mdl.edit.c = max(1, mdl.edit.c - 1) end,
+  fn = function(mdl)
+    mdl.edit.c = max(1, mdl.edit.c - 1)
+  end,
 }
 Action{
   name='up', brief='move cursor up',
-  fn = function(mdl) mdl.edit.l = max(1, mdl.edit.l - 1) end,
+  fn = function(mdl)
+    mdl.edit.l = max(1, mdl.edit.l - 1)
+  end,
 }
 Action{
   name='right', brief='move cursor right',
-  fn = function(mdl) mdl.edit.c = min(mdl.edit.c + 1, #mdl.edit:curLine() + 1) end,
+  fn = function(mdl)
+    mdl.edit.c = min(mdl.edit.c + 1, #mdl.edit:curLine() + 1)
+  end,
 }
 Action{
   name='down', brief='move cursor down',
@@ -103,10 +109,9 @@ Action{
     local e = mdl.edit
     e.l = min(mdl.edit.l + 1, e:len() + 1)
     if e.l > e:len() then
-      e.l, e.c = e:len(), #e:curLine() + 1
+      e.l, e.c = e:len(), #e:lastLine() + 1
     end
   end,
 }
-
 
 return mod

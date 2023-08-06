@@ -69,8 +69,12 @@ end)
 -- #####################
 --   * draw
 method(Model, 'draw', function(mdl)
+  local h, w = mdl.term:size()
+  mdl.h, mdl.w = mdl.term:size()
   update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
   mdl.view:draw(mdl.term, true)
+  local e = mdl.edit
+  mdl.term:golc(e.vl + e.l - 1, e.vc + e.c - 1)
 end)
 
 -- #####################
