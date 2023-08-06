@@ -40,7 +40,7 @@ method(Edit, 'setCursor', function(e, l, c)
 end)
 
 -- draw to term (l, c, w, h)
-method(Edit, 'draw', function(e)
+method(Edit, 'draw', function(e, model)
   e.canvas = List{}
   for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.vh - 1)) do
     local s = string.sub(line, e.vc, e.vc + e.vw - 1)

@@ -72,7 +72,7 @@ local function drawChild(isLast, point, remain, period, sep)
   return point, remain, size - (isLast and sep or 0)
 end
 
-method(Window, 'draw', function(w)
+method(Window, 'draw', function(w, model)
   assert(#w > 0, "Drawing empty window")
   if not w.splitkind then
     assert(#w == 1)

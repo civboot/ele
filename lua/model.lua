@@ -68,9 +68,9 @@ end)
 
 -- #####################
 --   * draw
-method(Model, 'draw', function(self)
-  update(self.view, {vl=1, vc=1, vh=self.h, vw=self.w})
-  self.view:draw()
+method(Model, 'draw', function(mdl)
+  update(mdl.view, {vl=1, vc=1, vh=mdl.h, vw=mdl.w})
+  mdl.view:draw(mdl)
 end)
 
 method(Model, 'paint', function(self)
