@@ -72,6 +72,7 @@ local function splitSetup(m, kind)
   local w = e2.container
   assert(rawequal(w, m.view))
   assert(rawequal(w, e1.container))
+  assert(rawequal(e1.buf, e2.buf))
   assertEq(3, w.id)
   assertEq(4, e2.id)
   assertEq(e2, w[1]); assertEq(e1, w[2]);
@@ -97,6 +98,10 @@ test('splitH', nil, function()
   assertEq(SPLIT_CANVAS_H, table.concat(w.canvas, '\n'))
 end)
 
+local SPLIT_CANVAS_V = [[
+1234567   | 1234567  
+123       | 123      ]]
+
 test('splitV', nil, function()
   types.ViewId = 0
   local m = mockedModel(
@@ -105,7 +110,7 @@ test('splitV', nil, function()
   local w, e1, e2 = splitSetup(m, 'v')
   assertEq(20, w.vw)
   assertEq(9, e1.vw); assertEq(9, e2.vw)
-  -- assertEq(SPLIT_CANVAS, concat(w.canvas, '\n'))
+  -- assertEq(SPLIT_CANVAS_V, concat(w.canvas, '\n'))
 end)
 
 

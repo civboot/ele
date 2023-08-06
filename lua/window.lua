@@ -74,7 +74,6 @@ end
 
 method(Window, 'draw', function(w)
   assert(#w > 0, "Drawing empty window")
-  w.canvas = List{}
   if not w.splitkind then
     assert(#w == 1)
     updateFields(w[1], w, {'vl', 'vc', 'vh', 'vw'})
@@ -83,28 +82,27 @@ method(Window, 'draw', function(w)
   elseif 'v' == w.splitkind then -- verticle split
     assert(#w > 1)
     local vc, vwRemain, period = w.vc, w.vw, M.calcPeriod(w.vw, #VSEP, #w)
-    for i, child in ipairs(w) do
-      updateFields(w[i], w, {'vl', 'vh'})
-      w[i].vc = vc
-      vc, vwRemain, w[i].vw = drawChild(i == #w, vc, vwRemain, period, #VSEP)
+    for ci, child in ipairs(w) do
+      updateFields(w[ci], w, {'vl', 'vh'})
+      vc, vwRemain, w[ci].vw = drawChild(ci == #w, vc, vwRemain, period, #VSEP)
       child:draw()
-      -- TODO
     end
   elseif 'h' == w.splitkind then -- horizontal split
     assert(#w > 1)
+    w.canvas = List{}
     local vl, vhRemain, period = w.vl, w.vh, M.calcPeriod(w.vh, #HSEP, #w)
     local li = 1
-    for i, child in ipairs(w) do
-      updateFields(w[i], w, {'vc', 'vw'})
-      w[i].vl = vl
-      vl, vhRemain, w[i].vh = drawChild(i == #w, vl, vhRemain, period, #HSEP)
+    for ci, child in ipairs(w) do
+      updateFields(w[ci], w, {'vc', 'vw'})
+      vl, vhRemain, w[ci].vh = drawChild(ci == #w, vl, vhRemain, period, #HSEP)
       child:draw()
-      for ci, line in ipairs(child.canvas) do
+      for _, line in ipairs(child.canvas) do
         w.canvas[li] = line; li = li + 1
       end
-      w.canvas[li]   = table.concat(fillBuf({}, w.vw, BufFillerDash))
-      w.canvas[li+1] = table.concat(fillBuf({}, w.vw))
-      li = li + 2
+      if ci < #w then -- separator
+        w.canvas[li] = table.concat(fillBuf({}, w.vw, BufFillerDash))
+        li = li + 1
+      end
     end
   end
 
