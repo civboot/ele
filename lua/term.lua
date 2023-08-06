@@ -98,7 +98,7 @@ end
 -- based on public domain code by Luiz Henrique de Figueiredo
 -- http://lua-users.org/lists/lua-l/2009-12/msg00942.html
 
-local term={ -- the plterm module
+local M={ -- the plterm module
   out = out,
   outf = outf,
   clear    = function()    out("\027[2J") end, -- *whole screen + move cursor
@@ -123,7 +123,7 @@ local term={ -- the plterm module
 
 local debugF = io.open('./out/debug.log', 'w')
 
-term.debug = function(...)
+M.debug = function(...)
   for _, v in ipairs({...}) do
     debugF:write(tostring(v))
     debugF:write('\t')
@@ -131,9 +131,9 @@ term.debug = function(...)
   debugF:write('\n')
   debugF:flush()
 end
-local debug = term.debug
+local debug = M.debug
 
-term.colors = {
+M.colors = {
   default = 0,
   -- foreground colors
   black = 30, red = 31, green = 32, yellow = 33,
@@ -174,15 +174,15 @@ local function fixKeys(keys)
     if string.match(k, '^%^') then k = string.upper(k) end
     assertKey(k); keys[i] = k
   end; return keys
-end; term.fixKeys = fixKeys
+end; M.fixKeys = fixKeys
 
-term.parseKeys = function(key)
+M.parseKeys = function(key)
   local out = {}; for key in string.gmatch(key, '%S+') do
      table.insert(out, key)
   end; return fixKeys(out)
 end
 
-term.KEY_INSERT = {
+M.KEY_INSERT = {
   ['tab']       = '\t',
   ['return']    = '\n',
   ['space']     = ' ',
@@ -190,7 +190,7 @@ term.KEY_INSERT = {
   ['backslash'] = '\\',
   ['caret']     = '^',
 }
-for c in pairs(term.KEY_INSERT) do VALID_KEY[c] = true end
+for c in pairs(M.KEY_INSERT) do VALID_KEY[c] = true end
 local CMD = { -- command characters (not sequences)
   [  9] = 'tab',
   [ 13] = 'return',
@@ -199,8 +199,8 @@ local CMD = { -- command characters (not sequences)
 }
 for _, k in pairs(CMD) do VALID_KEY[k] = true end
 
-term.isInsertKey = function(k)
-  return 1 == #k or term.KEY_INSERT[k]
+M.isInsertKey = function(k)
+  return 1 == #k or M.KEY_INSERT[k]
 end
 
 local isdigitsc = function(c)
@@ -263,7 +263,7 @@ end
 local function ctrlChar(c)
   if c >= 32 then return nil end
   return char(64+c)
-end term.ctrlChar = ctrlChar
+end M.ctrlChar = ctrlChar
 
 local function codeKey(c)
   if     CMD[c]     then return CMD[c]
@@ -271,7 +271,7 @@ local function codeKey(c)
   return string.char(c)
 end
 
-term.input = function()
+M.input = function()
   -- return a "read next key" function that can be used in a loop
   -- the "next" function blocks until a key is read
   -- it returns ascii or unicode code for all regular keys,
@@ -367,7 +367,7 @@ term.input = function()
   end)--coroutine
 end--input()
 
-term.rawinput = function()
+M.rawinput = function()
   -- return a "read next key" function that can be used in a loop
   -- the "next" function blocks until a key is read
   -- it returns ascii code for all keys
@@ -381,7 +381,7 @@ term.rawinput = function()
   end)--coroutine
 end--rawinput()
 
-term.getcurpos = function()
+M.getcurpos = function()
   -- return current cursor position (line, column as integers)
   --
   outf("\027[6n") -- report cursor position. answer: esc[n;mR
@@ -402,12 +402,12 @@ term.getcurpos = function()
   return tonumber(n), tonumber(m)
 end
 
-term.size = function()
+M.size = function()
   -- return current screen dimensions (line, coloumn as integers)
-  term.save()
-  term.down(999); term.right(999)
-  local l, c = term.getcurpos()
-  term.restore()
+  M.save()
+  M.down(999); M.right(999)
+  local l, c = M.getcurpos()
+  M.restore()
   return l, c
 end
 
@@ -421,11 +421,11 @@ end
 --
 local stty = "stty" -- use the default stty
 
-term.setrawmode = function()
+M.setrawmode = function()
   return os.execute(stty .. " raw -echo 2> /dev/null")
 end
 
-term.setsanemode = function()
+M.setsanemode = function()
   return os.execute(stty .. " sane")
 end
 
@@ -435,38 +435,38 @@ end
 -- thanks to Phil Hagelberg for the heads up.
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
 
-term.savemode = function()
+M.savemode = function()
   local fh = io.popen(stty .. " -g")
   local mode = fh:read(READALL)
   local succ, e, msg = fh:close()
   return succ and mode or nil, e, msg
 end
 
-term.restoremode = function(mode)
+M.restoremode = function(mode)
   return os.execute(stty .. " " .. mode)
 end
 
 -- setting __gc causes restoremode to be called on program exit
-term.ATEXIT = {}
-term.enterRawMode = function()
-  assert(not getmetatable(term.ATEXIT))
-  local SAVED, err, msg = term.savemode()
+M.ATEXIT = {}
+M.enterRawMode = function()
+  assert(not getmetatable(M.ATEXIT))
+  local SAVED, err, msg = M.savemode()
   assert(err, msg); err, msg = nil, nil
   local atexit = {
     __gc = function()
-      term.clear()
-      term.restoremode(SAVED)
+      M.clear()
+      M.restoremode(SAVED)
       debug('Exited raw mode')
    end,
   }
-  setmetatable(term.ATEXIT, atexit)
-  term.setrawmode()
+  setmetatable(M.ATEXIT, atexit)
+  M.setrawmode()
   debug('Entered raw mode')
 end
-term.exitRawMode = function()
-  local mt = getmetatable(term.ATEXIT); assert(mt)
+M.exitRawMode = function()
+  local mt = getmetatable(M.ATEXIT); assert(mt)
   mt.__gc()
-  setmetatable(term.ATEXIT, nil)
+  setmetatable(M.ATEXIT, nil)
 end
 
-return term
+return M
