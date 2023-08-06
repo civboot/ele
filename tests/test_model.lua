@@ -22,12 +22,15 @@ local function mockInputs(inputs)
 end
 
 test('edit', nil, function()
+  local t = term.FakeTerm(1, 4); assert(t)
+  print('??? term', t)
   local e = Edit.new(nil, Buffer.new(
     "1234567\n123\n12345\n"), 1, 4)
-  e:draw(); assertEq(List{'1234'}, e.canvas)
-  e.vh, e.vw = 2, 4; e:draw()
+  e:draw(t); assertEq(List{'1234'}, e.canvas)
+  e.th, e.tw = 2, 4; t:init(2, 4)
+  e:draw(t)
   assertEq(List{'1234', '123 '}, e.canvas)
-  e.vl = 2; e:draw()
+  e.tl = 2; e:draw(t)
   assertEq(List{'123 ', '1234'}, e.canvas)
 end)
 
@@ -93,9 +96,9 @@ test('splitH', nil, function()
     5, 7, -- h, w
     '1234567\n123')
   local w, e1, e2 = splitSetup(m, 'h')
-  assertEq(7, w.vw)
-  assertEq(7, e1.vw); assertEq(7, e2.vw)
-  assertEq(2, e1.vh); assertEq(2, e2.vh)
+  assertEq(7, w.tw)
+  assertEq(7, e1.tw); assertEq(7, e2.tw)
+  assertEq(2, e1.th); assertEq(2, e2.th)
   assertEq(SPLIT_CANVAS_H, table.concat(w.canvas, '\n'))
 end)
 
@@ -109,8 +112,8 @@ test('splitV', nil, function()
     2, 20, -- h, w
     '1234567\n123')
   local w, e1, e2 = splitSetup(m, 'v')
-  assertEq(20, w.vw)
-  assertEq(9, e1.vw); assertEq(9, e2.vw)
+  assertEq(20, w.tw)
+  assertEq(9, e1.tw); assertEq(9, e2.tw)
   -- assertEq(SPLIT_CANVAS_V, concat(w.canvas, '\n'))
 end)
 

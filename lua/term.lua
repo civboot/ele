@@ -241,9 +241,8 @@ end
 -- Fake: a fake terminal for testing
 local FakeTerm = civ.newTy(); M.FakeTerm = FakeTerm
 constructor(FakeTerm, function(ty_, h, w)
-  local t = {h=h, w=w}
-  FakeTerm.clear(t)
-  return setmetatable(t, ty_)
+  local t = setmetatable({}, ty_); FakeTerm.init(t, h, w)
+  return t
 end)
 FakeTerm.__index = civ.methIndex
 methods(FakeTerm, {
@@ -252,6 +251,10 @@ methods(FakeTerm, {
       local line = {}; for c=1, t.w do line[c] = '' end
       t[l] = line
     end
+  end,
+  init=function(t, h, w)
+    t.h, t.w = h, w
+    t:clear()
   end,
   cleareol=function(t, l, c)
     t:assertLC(l, c)
@@ -278,8 +281,8 @@ methods(FakeTerm, {
 
   -- utility
   assertLC=function(t, l, c)
-    assert(l >= 1 and l <= t.h, "l OOB")
-    assert(c >= 1 and c <= t.w, "c OOB")
+    if 1 > l or l > t.h then error("l OOB: " .. l) end
+    if 1 > c or c > t.w then error("c OOB: " .. c) end
   end,
 })
 

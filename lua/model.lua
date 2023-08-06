@@ -69,8 +69,8 @@ end)
 -- #####################
 --   * draw
 method(Model, 'draw', function(mdl)
-  update(mdl.view, {vl=1, vc=1, vh=mdl.h, vw=mdl.w})
-  mdl.view:draw(mdl)
+  update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
+  mdl.view:draw(mdl.term)
 end)
 
 method(Model, 'paint', function(self)
@@ -80,9 +80,9 @@ method(Model, 'paint', function(self)
   self.term:clear()
   local th, tw = self.term:size(); assert((tw > 0) and (th > 0))
   self.h, self.w = th, tw
-  local e = self.edit; e.vh, e.vw = th, tw
+  local e = self.edit; e.th, e.tw = th, tw
   e:paint(1, 1)
-  self.term:golc(e.vl + e.l - 1, e.vc + e.c - 1)
+  self.term:golc(e.tl + e.l - 1, e.tc + e.c - 1)
 end)
 
 -- #####################

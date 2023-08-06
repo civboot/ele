@@ -51,8 +51,8 @@ method(Window, 'new', function(container)
   return Window{
     id=nextViewId(),
     container=container,
-    vl=-1, vc=-1,
-    vh=-1, vw=-1,
+    tl=-1, tc=-1,
+    th=-1, tw=-1,
   }
 end)
 
@@ -72,35 +72,35 @@ local function drawChild(isLast, point, remain, period, sep)
   return point, remain, size - (isLast and sep or 0)
 end
 
-method(Window, 'draw', function(w, model)
+method(Window, 'draw', function(w, term)
   assert(#w > 0, "Drawing empty window")
   if not w.splitkind then
     assert(#w == 1)
-    updateFields(w[1], w, {'vl', 'vc', 'vh', 'vw'})
-    child:draw()
+    updateFields(w[1], w, {'tl', 'tc', 'th', 'tw'})
+    child:draw(term)
     w.canvas = child.canvas
   elseif 'v' == w.splitkind then -- verticle split
     assert(#w > 1)
-    local vc, vwRemain, period = w.vc, w.vw, M.calcPeriod(w.vw, #VSEP, #w)
+    local tc, twRemain, period = w.tc, w.tw, M.calcPeriod(w.tw, #VSEP, #w)
     for ci, child in ipairs(w) do
-      updateFields(w[ci], w, {'vl', 'vh'})
-      vc, vwRemain, w[ci].vw = drawChild(ci == #w, vc, vwRemain, period, #VSEP)
-      child:draw()
+      updateFields(w[ci], w, {'tl', 'th'})
+      tc, twRemain, w[ci].tw = drawChild(ci == #w, tc, twRemain, period, #VSEP)
+      child:draw(term)
     end
   elseif 'h' == w.splitkind then -- horizontal split
     assert(#w > 1)
     w.canvas = List{}
-    local vl, vhRemain, period = w.vl, w.vh, M.calcPeriod(w.vh, #HSEP, #w)
+    local tl, thRemain, period = w.tl, w.th, M.calcPeriod(w.th, #HSEP, #w)
     local li = 1
     for ci, child in ipairs(w) do
-      updateFields(w[ci], w, {'vc', 'vw'})
-      vl, vhRemain, w[ci].vh = drawChild(ci == #w, vl, vhRemain, period, #HSEP)
-      child:draw()
+      updateFields(w[ci], w, {'tc', 'tw'})
+      tl, thRemain, w[ci].th = drawChild(ci == #w, tl, thRemain, period, #HSEP)
+      child:draw(term)
       for _, line in ipairs(child.canvas) do
         w.canvas[li] = line; li = li + 1
       end
       if ci < #w then -- separator
-        w.canvas[li] = table.concat(fillBuf({}, w.vw, BufFillerDash))
+        w.canvas[li] = table.concat(fillBuf({}, w.tw, BufFillerDash))
         li = li + 1
       end
     end

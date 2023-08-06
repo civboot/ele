@@ -11,8 +11,8 @@ method(Edit, 'new', function(container, buf, h, w)
   return Edit{
     id=nextViewId(),
     buf=buf, l=1, c=1,
-    vh=h, vw=w,
-    vl=1, vc=1,
+    th=h, tw=w,
+    tl=1, tc=1,
     container=container,
     canvas=nil,
   }
@@ -35,23 +35,34 @@ end)
 method(Edit, 'setCursor', function(e, l, c)
   e.l = min(e.gap:len(), max(1, l or 1))
   e.c = min(1, c or Gap.CMAX)
-  e.vl = max(1, e.l - e.vh)
-  e.vc = max(1, e.c - e.vw)
+  e.tl = max(1, e.l - e.th)
+  e.tc = max(1, e.c - e.tw)
 end)
 
 -- draw to term (l, c, w, h)
-method(Edit, 'draw', function(e, model)
+method(Edit, 'draw', function(e, term)
+  assert(term)
   e.canvas = List{}
-  for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.vh - 1)) do
-    local s = string.sub(line, e.vc, e.vc + e.vw - 1)
-    e.canvas:add(table.concat(fillBuf({s}, e.vw - #s)))
+  for i, line in ipairs(e.buf.gap:sub(e.tl, e.tl + e.th - 1)) do
+    local s = string.sub(line, e.tc, e.tc + e.tw - 1)
+    e.canvas:add(table.concat(fillBuf({s}, e.tw - #s)))
+  end
+  local l = e.tl
+  for _, line in ipairs(e.canvas) do
+    local c = e.tc
+    for char in line:gmatch'.' do
+      print("l", l, line)
+      -- term:set(l, c, char)
+      c = c + 1
+    end;
+    l = l + 1
   end
 end)
 
 method(Edit, 'paint', function(e, tl, tc)
   for l, line in ipairs(e.canvas) do
     tunix.golc(tl + l - 1, tc);
-    tunix.outf(string.sub(line, 1, e.vw - 1))
+    tunix.outf(string.sub(line, 1, e.tw - 1))
   end
 end)
 
