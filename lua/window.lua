@@ -4,7 +4,7 @@ local term = require'term'
 
 local M = {}
 
-local VSEP = ' |'
+local VSEP = '|'
 local HSEP = '-'
 
 local BufFillerDash = {
@@ -72,36 +72,48 @@ local function drawChild(isLast, point, remain, period, sep)
   return point, remain, size - (isLast and sep or 0)
 end
 
+-- Draw horizontal separator at l,c of width
+local function drawSepH(term, l, c, w, sep)
+  for char in sep:gmatch'.' do
+    for tc=c, c + w - 1 do term:set(l, tc, sep) end
+    l = l + 1
+  end
+end
+
+-- Draw verticle separator at l,c of height
+local function drawSepV(term, l, c, h, sep)
+  for char in sep:gmatch'.' do
+    for tl=l, l + h - 1 do term:set(tl, c, char) end
+    c = c + 1
+  end
+end
+
 method(Window, 'draw', function(w, term)
   assert(#w > 0, "Drawing empty window")
   if not w.splitkind then
     assert(#w == 1)
     updateFields(w[1], w, {'tl', 'tc', 'th', 'tw'})
     child:draw(term)
-    w.canvas = child.canvas
   elseif 'v' == w.splitkind then -- verticle split
     assert(#w > 1)
     local tc, twRemain, period = w.tc, w.tw, M.calcPeriod(w.tw, #VSEP, #w)
     for ci, child in ipairs(w) do
-      updateFields(w[ci], w, {'tl', 'th'})
+      updateFields(w[ci], w, {'tl', 'th'}); child.tc = tc
       tc, twRemain, w[ci].tw = drawChild(ci == #w, tc, twRemain, period, #VSEP)
       child:draw(term)
+      if ci < #w then
+        drawSepV(term, w.tl, tc - #VSEP, w.th, VSEP)
+      end
     end
   elseif 'h' == w.splitkind then -- horizontal split
     assert(#w > 1)
-    w.canvas = List{}
     local tl, thRemain, period = w.tl, w.th, M.calcPeriod(w.th, #HSEP, #w)
-    local li = 1
     for ci, child in ipairs(w) do
-      updateFields(w[ci], w, {'tc', 'tw'})
-      tl, thRemain, w[ci].th = drawChild(ci == #w, tl, thRemain, period, #HSEP)
+      updateFields(child, w, {'tc', 'tw'}); child.tl = tl
+      tl, thRemain, child.th = drawChild(ci == #w, tl, thRemain, period, #HSEP)
       child:draw(term)
-      for _, line in ipairs(child.canvas) do
-        w.canvas[li] = line; li = li + 1
-      end
-      if ci < #w then -- separator
-        w.canvas[li] = table.concat(fillBuf({}, w.tw, BufFillerDash))
-        li = li + 1
+      if ci < #w then
+        drawSepH(term, tl - #HSEP, w.tc, w.tw, HSEP)
       end
     end
   end

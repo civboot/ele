@@ -32,7 +32,6 @@ M.Buffer = struct('Buffer', {
 M.Window = struct('Window', {
   {'id', Num},
   'container', -- parent (Window/Model)
-  {'canvas', List, false},
   {'splitkind', Str, false}, -- nil, h, v
   {'tl', Num}, {'tc', Num}, -- term lines, cols
   {'th', Num}, {'tw', Num}, -- term height, width

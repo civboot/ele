@@ -40,7 +40,6 @@ local function mockedModel(h, w, s, inputs)
     mockInputs(inputs or ''))
   local e = Edit.new(app, Buffer.new(s), h, w)
   app.view, app.edit = e, e
-  app.paint = function() end
   app.status = function(t, ...)
     if ty(t) == Tbl then print(concat(t))
     else print(t, ...) end
@@ -70,18 +69,18 @@ test('calcPeriod', nil, function()
 end)
 
 local function splitSetup(m, kind)
-  local e1 = m.edit
-  assertEq(2, e1.id)
-  local e2 = window.splitEdit(m.edit, kind)
-  local w = e2.container
+  local eR = m.edit
+  assertEq(2, eR.id)
+  local eL = window.splitEdit(m.edit, kind)
+  local w = eL.container
   assert(rawequal(w, m.view))
-  assert(rawequal(w, e1.container))
-  assert(rawequal(e1.buf, e2.buf))
+  assert(rawequal(w, eR.container))
+  assert(rawequal(eR.buf, eL.buf))
   assertEq(3, w.id)
-  assertEq(4, e2.id)
-  assertEq(e2, w[1]); assertEq(e1, w[2]);
+  assertEq(4, eL.id)
+  assertEq(eL, w[1]); assertEq(eR, w[2]);
   m:draw()
-  return w, e1, e2
+  return w, eL, eR
 end
 
 local SPLIT_CANVAS_H = [[
@@ -95,25 +94,26 @@ test('splitH', nil, function()
   local m = mockedModel(
     5, 7, -- h, w
     '1234567\n123')
-  local w, e1, e2 = splitSetup(m, 'h')
+  local w, eL, eR = splitSetup(m, 'h')
   assertEq(7, w.tw)
-  assertEq(7, e1.tw); assertEq(7, e2.tw)
-  assertEq(2, e1.th); assertEq(2, e2.th)
-  assertEq(SPLIT_CANVAS_H, table.concat(w.canvas, '\n'))
+  assertEq(7, eR.tw); assertEq(7, eL.tw)
+  assertEq(2, eR.th); assertEq(2, eL.th)
+  assertEq(SPLIT_CANVAS_H, tostring(m.term))
 end)
 
 local SPLIT_CANVAS_V = [[
-1234567   | 1234567  
-123       | 123      ]]
+1234567  |1234567   
+123      |123       ]]
 
 test('splitV', nil, function()
   types.ViewId = 0
   local m = mockedModel(
     2, 20, -- h, w
     '1234567\n123')
-  local w, e1, e2 = splitSetup(m, 'v')
+  local w, eL, eR = splitSetup(m, 'v')
   assertEq(20, w.tw)
-  assertEq(9, e1.tw); assertEq(9, e2.tw)
-  -- assertEq(SPLIT_CANVAS_V, concat(w.canvas, '\n'))
+  assertEq(10, eR.tw);
+  assertEq(9,  eL.tw)
+  assertEq(SPLIT_CANVAS_V, tostring(m.term))
 end)
 

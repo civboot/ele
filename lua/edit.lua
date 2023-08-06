@@ -52,18 +52,10 @@ method(Edit, 'draw', function(e, term)
   for _, line in ipairs(e.canvas) do
     local c = e.tc
     for char in line:gmatch'.' do
-      print("l", l, line)
       term:set(l, c, char)
       c = c + 1
     end;
     l = l + 1
-  end
-end)
-
-method(Edit, 'paint', function(e, tl, tc)
-  for l, line in ipairs(e.canvas) do
-    tunix.golc(tl + l - 1, tc);
-    tunix.outf(string.sub(line, 1, e.tw - 1))
   end
 end)
 

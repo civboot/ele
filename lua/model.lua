@@ -73,18 +73,6 @@ method(Model, 'draw', function(mdl)
   mdl.view:draw(mdl.term)
 end)
 
-method(Model, 'paint', function(self)
-  -- local lastDraw = shix.epoch() - self.lastDraw
-  -- if DRAW_PERIOD < lastDraw then
-  -- end
-  self.term:clear()
-  local th, tw = self.term:size(); assert((tw > 0) and (th > 0))
-  self.h, self.w = th, tw
-  local e = self.edit; e.th, e.tw = th, tw
-  e:paint(1, 1)
-  self.term:golc(e.tl + e.l - 1, e.tc + e.c - 1)
-end)
-
 -- #####################
 --   * update
 
@@ -141,7 +129,7 @@ method(Model, 'step', function(self)
   debug('calling update')
   self:update()
   if self.mode == 'quit' then return false end
-  self:draw(); self:paint()
+  self:draw()
   return true
 end)
 
