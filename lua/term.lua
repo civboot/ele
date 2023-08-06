@@ -245,7 +245,7 @@ constructor(FakeTerm, function(ty_, h, w)
   FakeTerm.clear(t)
   return setmetatable(t, ty_)
 end)
-FakeTerm.__index = civ.methodIndex
+FakeTerm.__index = civ.methIndex
 methods(FakeTerm, {
   clear=function(t)
     for l=1, t.h do

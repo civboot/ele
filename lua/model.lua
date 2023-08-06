@@ -7,7 +7,7 @@ grequire'types'
 local action = require'action'
 local posix = require'posix'
 local shix = require'shix'
-local term = require'term'; tunix = term.unix
+local term = require'term'
 local gap  = require'gap'
 local edit = require'edit'
 local buffer = require'buffer'
@@ -23,7 +23,8 @@ local MODE = { command='command', insert='insert' }
 local Actions = action.Actions
 
 method(Model, '__tostring', function() return 'APP' end)
-method(Model, 'new', function(term_, h, w)
+method(Model, 'new', function(term_, inputCo)
+  local h, w = term_:size()
   local sts = Buffer.new()
   local mdl = {
     mode='command',
@@ -33,13 +34,12 @@ method(Model, 'new', function(term_, h, w)
     bindings=Bindings.default(),
     chord=nil, chordKeys=List{},
 
-    inputCo=nil, term=term_,
+    inputCo=inputCo, term=term_,
     events=LL(),
     statusBuf=sts,
   }
   mdl.view = Edit.new(mdl, sts, h, w)
   mdl.edit = mdl.view
-  mdl.inputCo  = tunix.input()
   return setmetatable(mdl, Model)
 end)
 
@@ -77,12 +77,12 @@ method(Model, 'paint', function(self)
   -- local lastDraw = shix.epoch() - self.lastDraw
   -- if DRAW_PERIOD < lastDraw then
   -- end
-  tunix.clear()
-  local th, tw = tunix.size(); assert((tw > 0) and (th > 0))
+  self.term:clear()
+  local th, tw = self.term:size(); assert((tw > 0) and (th > 0))
   self.h, self.w = th, tw
   local e = self.edit; e.vh, e.vw = th, tw
   e:paint(1, 1)
-  tunix.golc(e.vl + e.l - 1, e.vc + e.c - 1)
+  self.term:golc(e.vl + e.l - 1, e.vc + e.c - 1)
 end)
 
 -- #####################
@@ -147,11 +147,11 @@ end)
 
 method(Model, 'app', function(self)
   print('\nEntering raw mode')
-  tunix.enterRawMode()
+  self.term:start()
   while true do
     if not self:step() then break end
   end
-  tunix.exitRawMode()
+  self.term:stop()
   print('\nExited app')
 end)
 
@@ -178,7 +178,7 @@ bindings.BINDINGS:updateCommand{
 
 local function main()
   print"## Running (shrm ctl+q to quit)"
-  local sh = Model.new(term.UnixTerm, 20, 10)
+  local sh = Model.new(term.UnixTerm, term.unix.input())
   sh:app()
 end
 

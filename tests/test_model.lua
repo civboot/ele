@@ -32,10 +32,11 @@ test('edit', nil, function()
 end)
 
 local function mockedModel(h, w, s, inputs)
-  local app = Model.new(term.FakeTerm(h, w), h, w)
+  local app = Model.new(
+    term.FakeTerm(h, w),
+    mockInputs(inputs or ''))
   local e = Edit.new(app, Buffer.new(s), h, w)
   app.view, app.edit = e, e
-  app.inputCo = mockInputs(inputs or '')
   app.paint = function() end
   app.status = function(t, ...)
     if ty(t) == Tbl then print(concat(t))
