@@ -34,8 +34,8 @@ M.Window = struct('Window', {
   'container', -- parent (Window/Model)
   {'canvas', List, false},
   {'splitkind', Str, false}, -- nil, h, v
-  {'tl', Num}, {'tc', Num}, -- view lines, cols
-  {'th', Num}, {'tw', Num}, -- view height, width
+  {'tl', Num}, {'tc', Num}, -- term lines, cols
+  {'th', Num}, {'tw', Num}, -- term height, width
 })
 
 M.Edit = struct('Edit', {
@@ -44,9 +44,10 @@ M.Edit = struct('Edit', {
   {'canvas', List, false},
   {'buf', Buffer},
 
-  {'l',  Num}, {'c',  Num}, -- cursor (line,col)
-  {'tl', Num}, {'tc', Num}, -- view lines, cols
-  {'th', Num}, {'tw', Num}, -- view height, width
+  {'l',  Num}, {'c',  Num}, -- cursor line, col
+  {'vl', Num}, {'vc', Num}, -- view   line, col (top-left)
+  {'tl', Num}, {'tc', Num}, -- term   line, col (top-left)
+  {'th', Num}, {'tw', Num}, -- term   height, width
 
   -- where this is contained
   -- (Lede, Rows, Cols)

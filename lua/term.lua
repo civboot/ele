@@ -264,7 +264,7 @@ methods(FakeTerm, {
   __tostring=function(t)
     local out = {}
     for i, line in ipairs(t) do out[i] = table.concat(line) end
-    return table.concat(out)
+    return table.concat(out, '\n')
   end,
   size=function(t) return t.h, t.w end,
 

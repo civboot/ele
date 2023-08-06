@@ -10,7 +10,8 @@ M = {}
 method(Edit, 'new', function(container, buf, h, w)
   return Edit{
     id=nextViewId(),
-    buf=buf, l=1, c=1,
+    buf=buf,
+    l=1, c=1, vl=1, vc=1,
     th=h, tw=w,
     tl=1, tc=1,
     container=container,
@@ -43,8 +44,8 @@ end)
 method(Edit, 'draw', function(e, term)
   assert(term)
   e.canvas = List{}
-  for i, line in ipairs(e.buf.gap:sub(e.tl, e.tl + e.th - 1)) do
-    local s = string.sub(line, e.tc, e.tc + e.tw - 1)
+  for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.th - 1)) do
+    local s = string.sub(line, e.vc, e.vc + e.tw - 1)
     e.canvas:add(table.concat(fillBuf({s}, e.tw - #s)))
   end
   local l = e.tl
@@ -52,7 +53,7 @@ method(Edit, 'draw', function(e, term)
     local c = e.tc
     for char in line:gmatch'.' do
       print("l", l, line)
-      -- term:set(l, c, char)
+      term:set(l, c, char)
       c = c + 1
     end;
     l = l + 1
