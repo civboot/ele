@@ -68,6 +68,8 @@ https://en.wikipedia.org/wiki/ANSI_escape_code
 -- local UTF8 = false -- 8-bit encoding (eg. ISO-8859 encodings)
 local UTF8 = true  -- UTF8 encoding
 
+local M = {}
+
 civ = require'civ'
 
 if UTF8 then local utf8 = require "utf8" end
@@ -98,7 +100,7 @@ end
 -- based on public domain code by Luiz Henrique de Figueiredo
 -- http://lua-users.org/lists/lua-l/2009-12/msg00942.html
 
-local M={ -- the plterm module
+local unix = { -- direct unix operations
   out = out,
   outf = outf,
   clear    = function()    out("\027[2J") end, -- *whole screen + move cursor
@@ -119,10 +121,9 @@ local M={ -- the plterm module
   restore = function() out("\027[u") end,    -- *cursor position
   -- reset terminal (clear and reset default colors)
   reset   = function() out("\027c") end,
-}
+}; M.unix = unix
 
 local debugF = io.open('./out/debug.log', 'w')
-
 M.debug = function(...)
   for _, v in ipairs({...}) do
     debugF:write(tostring(v))
@@ -133,7 +134,7 @@ M.debug = function(...)
 end
 local debug = M.debug
 
-M.colors = {
+unix.colors = {
   default = 0,
   -- foreground colors
   black = 30, red = 31, green = 32, yellow = 33,
@@ -271,7 +272,7 @@ local function codeKey(c)
   return string.char(c)
 end
 
-M.input = function()
+unix.input = function()
   -- return a "read next key" function that can be used in a loop
   -- the "next" function blocks until a key is read
   -- it returns ascii or unicode code for all regular keys,
@@ -367,7 +368,7 @@ M.input = function()
   end)--coroutine
 end--input()
 
-M.rawinput = function()
+unix.rawinput = function()
   -- return a "read next key" function that can be used in a loop
   -- the "next" function blocks until a key is read
   -- it returns ascii code for all keys
@@ -381,7 +382,7 @@ M.rawinput = function()
   end)--coroutine
 end--rawinput()
 
-M.getcurpos = function()
+unix.getcurpos = function()
   -- return current cursor position (line, column as integers)
   --
   outf("\027[6n") -- report cursor position. answer: esc[n;mR
@@ -402,12 +403,12 @@ M.getcurpos = function()
   return tonumber(n), tonumber(m)
 end
 
-M.size = function()
+unix.size = function()
   -- return current screen dimensions (line, coloumn as integers)
-  M.save()
-  M.down(999); M.right(999)
-  local l, c = M.getcurpos()
-  M.restore()
+  unix.save()
+  unix.down(999); unix.right(999)
+  local l, c = unix.getcurpos()
+  unix.restore()
   return l, c
 end
 
@@ -421,11 +422,11 @@ end
 --
 local stty = "stty" -- use the default stty
 
-M.setrawmode = function()
+unix.setrawmode = function()
   return os.execute(stty .. " raw -echo 2> /dev/null")
 end
 
-M.setsanemode = function()
+unix.setsanemode = function()
   return os.execute(stty .. " sane")
 end
 
@@ -435,38 +436,38 @@ end
 -- thanks to Phil Hagelberg for the heads up.
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
 
-M.savemode = function()
+unix.savemode = function()
   local fh = io.popen(stty .. " -g")
   local mode = fh:read(READALL)
   local succ, e, msg = fh:close()
   return succ and mode or nil, e, msg
 end
 
-M.restoremode = function(mode)
+unix.restoremode = function(mode)
   return os.execute(stty .. " " .. mode)
 end
 
 -- setting __gc causes restoremode to be called on program exit
-M.ATEXIT = {}
-M.enterRawMode = function()
-  assert(not getmetatable(M.ATEXIT))
-  local SAVED, err, msg = M.savemode()
+unix.ATEXIT = {}
+unix.enterRawMode = function()
+  assert(not getmetatable(unix.ATEXIT))
+  local SAVED, err, msg = unix.savemode()
   assert(err, msg); err, msg = nil, nil
   local atexit = {
     __gc = function()
-      M.clear()
-      M.restoremode(SAVED)
+      unix.clear()
+      unix.restoremode(SAVED)
       debug('Exited raw mode')
    end,
   }
-  setmetatable(M.ATEXIT, atexit)
-  M.setrawmode()
+  setmetatable(unix.ATEXIT, atexit)
+  unix.setrawmode()
   debug('Entered raw mode')
 end
-M.exitRawMode = function()
-  local mt = getmetatable(M.ATEXIT); assert(mt)
+unix.exitRawMode = function()
+  local mt = getmetatable(unix.ATEXIT); assert(mt)
   mt.__gc()
-  setmetatable(M.ATEXIT, nil)
+  setmetatable(unix.ATEXIT, nil)
 end
 
 return M

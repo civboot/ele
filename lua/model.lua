@@ -7,14 +7,13 @@ grequire'types'
 local action = require'action'
 local posix = require'posix'
 local shix = require'shix'
-local term = require'term'
+local term = require'term'; tunix = term.unix
 local gap  = require'gap'
 local edit = require'edit'
 local buffer = require'buffer'
 local bindings = require'bindings'
 
 local yld = coroutine.yield
-local outf = term.outf
 local debug = term.debug
 
 local M = {} -- module
@@ -40,7 +39,7 @@ method(Model, 'new', function(h, w)
   }
   mdl.view = Edit.new(mdl, sts, h, w)
   mdl.edit = mdl.view
-  mdl.inputCo  = term.input()
+  mdl.inputCo  = tunix.input()
   return setmetatable(mdl, Model)
 end)
 
@@ -78,12 +77,12 @@ method(Model, 'paint', function(self)
   -- local lastDraw = shix.epoch() - self.lastDraw
   -- if DRAW_PERIOD < lastDraw then
   -- end
-  term.clear()
-  local th, tw = term.size(); assert((tw > 0) and (th > 0))
+  tunix.clear()
+  local th, tw = tunix.size(); assert((tw > 0) and (th > 0))
   self.h, self.w = th, tw
   local e = self.edit; e.vh, e.vw = th, tw
   e:paint(1, 1)
-  term.golc(e.vl + e.l - 1, e.vc + e.c - 1)
+  tunix.golc(e.vl + e.l - 1, e.vc + e.c - 1)
 end)
 
 -- #####################
@@ -148,11 +147,11 @@ end)
 
 method(Model, 'app', function(self)
   print('\nEntering raw mode')
-  term.enterRawMode()
+  tunix.enterRawMode()
   while true do
     if not self:step() then break end
   end
-  term.exitRawMode()
+  tunix.exitRawMode()
   print('\nExited app')
 end)
 

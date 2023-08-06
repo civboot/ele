@@ -2,7 +2,7 @@
 -- # Edit struct
 require'civ':grequire()
 grequire'types'
-local term = require'term'
+local term = require'term'; tunix = term.unix
 
 M = {}
 
@@ -50,8 +50,8 @@ end)
 
 method(Edit, 'paint', function(e, tl, tc)
   for l, line in ipairs(e.canvas) do
-    term.golc(tl + l - 1, tc);
-    term.outf(string.sub(line, 1, e.vw - 1))
+    tunix.golc(tl + l - 1, tc);
+    tunix.outf(string.sub(line, 1, e.vw - 1))
   end
 end)
 

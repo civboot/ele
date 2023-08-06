@@ -2,7 +2,7 @@ local civ = require'civ':grequire()
 civ.TESTING = true
 grequire'model'
 local shix = require'shix'
-local term = require'term'
+local term = require'term'; local tunix = term.unix
 local types = require'types'
 local window = require'window'
 
@@ -143,26 +143,26 @@ test('display', nil, function()
   local e = sh.view
   e.buf.gap:insert(TEST_MSG, 1, 1)
   e.l, e.c = 5, 15
-  term.enterRawMode()
+  tunix.enterRawMode()
 
-  term.clear();
+  tunix.clear();
   e:draw(4, 4,  11, 51)
-  term.outf("-- left box --")
+  tunix.outf("-- left box --")
   e:draw(4, 56, 11, 51)
-  term.outf("-- right box --")
+  tunix.outf("-- right box --")
   sleep(); sleep()
-  term.exitRawMode()
+  tunix.exitRawMode()
 end) --]]
 
 --[[
 test('input', nil, function()
   print('Note: Cntrl+C to exit. Use to test input. '
          .. 'Logs are in out/debug.log')
-  term.enterRawMode()
-  for kp in term.input() do
+  tunix.enterRawMode()
+  for kp in tunix.input() do
     term.debug('Key: ', tostring(kp), kp.c and term.keyname(kp.c))
     if '^C' == kp then break end
   end
-  term.exitRawMode()
+  tunix.exitRawMode()
 end) --]]
 
