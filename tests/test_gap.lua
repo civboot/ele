@@ -42,7 +42,8 @@ test('remove', nil, function()
 
   g = Gap.new('a\nb')
   r = g:remove(1, 2, 2, 0) -- remove newline
-  assertEq('\n', r); assertEq('ab', tostring(g))
+  assertEq('\n', r);
+  assertEq('ab', tostring(g))
   r = g:remove(1, 1, 2, 1)
   assertEq('ab', r); assertEq('', tostring(g))
 

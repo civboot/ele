@@ -111,9 +111,7 @@ method(Window, 'draw', function(w, term, isRight)
       updateFields(child, w, {'tc', 'tw'}); child.tl = tl
       tl, thRemain, child.th = drawChild(ci == #w, tl, thRemain, period, #HSEP)
       child:draw(term, isRight)
-      if ci < #w then
-        drawSepH(term, tl - #HSEP, w.tc, w.tw, HSEP)
-      end
+      if ci < #w then drawSepH(term, tl - #HSEP, w.tc, w.tw, HSEP) end
     end
   end
 end)

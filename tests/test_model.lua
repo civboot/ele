@@ -64,6 +64,54 @@ test('insert', nil, function()
             assertEq(1, e.l); assertEq(3, e.c)
 end)
 
+test('back', nil, function()
+  local m = mockedModel(
+    1, 7, -- h, w
+    '1234567',
+    'i back back x')
+  local e = m.edit;
+  e.l, e.c = 1, 4
+  m:step(); assertEq(List{'1234567'}, e.canvas)
+            assertEq(1, e.l); assertEq(4, e.c)
+  m:step(); assertEq(List{'124567'}, e.canvas)
+            assertEq(1, e.l); assertEq(3, e.c)
+  m:step(); assertEq(List{'14567'}, e.canvas)
+            assertEq(1, e.l); assertEq(2, e.c)
+  m:step(); assertEq(List{'1x4567'}, e.canvas)
+            assertEq(1, e.l); assertEq(3, e.c)
+end)
+
+local function steps(m, num) for _=1, num do m:step() end end
+
+test('move', nil, function()
+  local m = mockedModel(
+    1, 7, -- h, w
+    '1234567\n123\n12345',
+    'k l h j j') -- up right left down down
+  local e = m.edit; e.l, e.c = 2, 3
+  m:step(); assertEq(1, e.l); assertEq(3, e.c)
+  m:step(); assertEq(1, e.l); assertEq(4, e.c)
+  m:step(); assertEq(1, e.l); assertEq(3, e.c)
+  m:step(); assertEq(2, e.l); assertEq(3, e.c)
+  m:step(); assertEq(3, e.l); assertEq(3, e.c)
+
+  -- now test boundaries
+  m.inputCo = mockInputs('j l k l') -- down right up right
+  m:step(); assertEq(3, e.l); assertEq(3, e.c) -- down (does nothing)
+  m:step(); assertEq(3, e.l); assertEq(4, e.c)
+  m:step(); assertEq(2, e.l); assertEq(4, e.c) -- up    (column overflow keep)
+  m:step(); assertEq(2, e.l); assertEq(3, e.c) -- right (column overflow set)
+
+  -- now test insert on overflow
+  m.inputCo = mockInputs('k l l l j i x') -- up 3*right down insert-x
+  steps(m, 4); assertEq(1, e.l); assertEq(6, e.c); -- k l l l
+  m:step();    assertEq(2, e.l); assertEq(6, e.c); -- j
+  m:step();    assertEq(2, e.l); assertEq(6, e.c); -- i
+  m:step();    assertEq(2, e.l); assertEq(4, e.c); -- x
+  m.vl = 2
+               assertEq(List{'123x'}, e.canvas)
+end)
+
 test('calcPeriod', nil, function()
   assertEq(9, window.calcPeriod(20, 2, 2))
 end)
@@ -115,4 +163,3 @@ test('splitV', nil, function()
   assertEq(9,  eL.tw)
   assertEq(SPLIT_CANVAS_V, tostring(m.term))
 end)
-

@@ -9,7 +9,7 @@
 --    after "bot" (aka after curLine). If the cursor is
 --    moved to a previous line then data is moved from top to bot
 
-local gap = {} -- module
+local M = {} -- module
 
 require'civ':grequire()
 local sub = string.sub
@@ -30,12 +30,13 @@ method(Gap, 'new', function(s)
 end)
 
 
-function lcs(l, c, l2, c2)
+local function lcs(l, c, l2, c2)
   if nil == l2 and nil == c2 then return l, nil, c, nil end
   if nil == l2 or  nil == c2 then error(
     'must provide 2 or 4 indexes (l, l2) or (l, c, l2, c2'
-  )end; return l, c, l2, c2
-end
+  )end;
+  return l, c, l2, c2
+end; M.lcs = lcs
 
 method(Gap, 'len', function(g) return #g.bot + #g.top end)
 method(Gap, 'cur', function(g) return g.bot[#g.bot]  end)
@@ -160,5 +161,5 @@ method(Gap, 'extend', function(g, s)
 end)
 
 Gap.CMAX = CMAX
-gap.Gap = Gap
-return gap
+M.Gap = Gap
+return M

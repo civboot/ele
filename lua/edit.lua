@@ -2,6 +2,7 @@
 -- # Edit struct
 require'civ':grequire()
 grequire'types'
+local gap = require'gap'
 local term = require'term'; tunix = term.unix
 
 M = {}
@@ -21,14 +22,30 @@ end)
 method(Edit, 'copy', function(e)
   return copy(e, {id=nextViewId()})
 end)
+method(Edit, 'offset', function(e, off)
+  return e.buf.gap:offset(off, e.l, e.c)
+end)
+method(Edit, 'curLine', function(e) return e.buf.gap:get(e.l) end)
+method(Edit, 'len',     function(e) return e.buf.gap:len() end)
 
 -- These are going to track state/cursor/etc
 method(Edit, 'insert', function(e, s)
   e.buf.gap:insert(s, e.l, e.c - 1)
+  e.c = min(e.c, #e:curLine())
+  print('insert', e.l, e.c)
   e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
 end)
-method(Edit, 'remove', function(e, ...)
-  self.gap:remove(...)
+method(Edit, 'remove', function(e, off, l, c)
+  if off == 0 then return end
+  print('remove start', e.l, e.c)
+  l, c = l or e.l, c or e.c; local gap = e.buf.gap
+  if l < e.l or (l == e.l and c <= e.c) then
+    e.l, e.c = gap:offset(off, e.l, e.c)
+  end
+  local l2, c2 = gap:offset(decAbs(off), l, c)
+  if off < 0 then l, l2, c, c2 = l2, l, c2, c end
+  print('remove', e.l, e.c, 'from2', l, c, l2, c2)
+  gap:remove(l, c, l2, c2)
 end)
 method(Edit, 'append', function(e, ...)
   self.gap:append(...)

@@ -15,8 +15,14 @@ constructor(Action, function(ty_, act)
 end)
 
 ---------------------------------
--- Default Actions
-
+-- Insert Mode
+Action{
+  name='insert', brief='go to insert mode',
+  fn = function(mdl)
+    mdl.mode = 'insert'
+    mdl.chord = nil
+  end,
+}
 Action{
   name='rawKey', brief='the raw key handler (directly handles all key events)',
   fn = function(mdl, event)
@@ -58,11 +64,16 @@ Action{
     end
   end,
 }
-
 Action{
-  name='quit', brief='quit the application',
-  fn = function(mdl) mdl.mode = 'quit'    end,
+  name='back', brief='delete previous character',
+  fn = function(mdl, event)
+    local l, c = mdl.edit:offset(-1)
+    mdl.edit:remove(-1, l, c)
+  end,
 }
+
+---------------------------------
+-- Command Mode
 Action{
   name='command', brief='go to command mode',
   fn = function(mdl)
@@ -71,11 +82,25 @@ Action{
   end,
 }
 Action{
-  name='insert', brief='go to insert mode',
-  fn = function(mdl)
-    mdl.mode = 'insert'
-    mdl.chord = nil
-  end,
+  name='quit', brief='quit the application',
+  fn = function(mdl) mdl.mode = 'quit'    end,
 }
+Action{
+  name='left', brief='move cursor left',
+  fn = function(mdl) mdl.edit.c = max(1, mdl.edit.c - 1) end,
+}
+Action{
+  name='up', brief='move cursor up',
+  fn = function(mdl) mdl.edit.l = max(1, mdl.edit.l - 1) end,
+}
+Action{
+  name='right', brief='move cursor right',
+  fn = function(mdl) mdl.edit.c = min(mdl.edit.c + 1, #mdl.edit:curLine()) end,
+}
+Action{
+  name='down', brief='move cursor down',
+  fn = function(mdl) mdl.edit.l = min(mdl.edit.l + 1, mdl.edit:len()) end,
+}
+
 
 return mod

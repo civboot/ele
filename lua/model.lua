@@ -148,17 +148,20 @@ end)
 -- #####################
 -- # Default Bindings
 
+local A = action.Actions
 -- -- Insert Mode
 bindings.BINDINGS:updateInsert{
-  ['^Q ^Q'] = action.Actions.quit,
-  ['^J']    = action.Actions.command,
-  ['esc']   = action.Actions.command,
+  ['^Q ^Q'] = A.quit,
+  ['^J']    = A.command,
+  ['esc']   = A.command,
+  ['back']  = A.back,
 }
 
 -- Command Mode
 bindings.BINDINGS:updateCommand{
-  ['^Q ^Q'] = action.Actions.quit,
-  i         = action.Actions.insert,
+  ['q q'] = A.quit,
+  i       = A.insert,
+  h=A.left, j=A.down, k=A.up, l=A.right,
 }
 
 -- #####################
