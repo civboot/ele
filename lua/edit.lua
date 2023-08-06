@@ -41,12 +41,11 @@ method(Edit, 'setCursor', function(e, l, c)
 end)
 
 -- draw to term (l, c, w, h)
-method(Edit, 'draw', function(e, term)
+method(Edit, 'draw', function(e, term, isRight)
   assert(term)
   e.canvas = List{}
   for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.th - 1)) do
-    local s = string.sub(line, e.vc, e.vc + e.tw - 1)
-    e.canvas:add(table.concat(fillBuf({s}, e.tw - #s)))
+    e.canvas:add(string.sub(line, e.vc, e.vc + e.tw - 1))
   end
   local l = e.tl
   for _, line in ipairs(e.canvas) do
@@ -54,7 +53,14 @@ method(Edit, 'draw', function(e, term)
     for char in line:gmatch'.' do
       term:set(l, c, char)
       c = c + 1
-    end;
+    end
+    local fill = e.tw - #line
+    if fill > 0 then
+      if isRight then term:cleareol(l, c)
+      else for _=1, fill do
+        term:set(l, c, ' '); c = c + 1
+      end end
+    end
     l = l + 1
   end
 end)

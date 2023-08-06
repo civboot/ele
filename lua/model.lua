@@ -70,7 +70,7 @@ end)
 --   * draw
 method(Model, 'draw', function(mdl)
   update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
-  mdl.view:draw(mdl.term)
+  mdl.view:draw(mdl.term, true)
 end)
 
 -- #####################

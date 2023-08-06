@@ -25,13 +25,13 @@ test('edit', nil, function()
   local t = term.FakeTerm(1, 4); assert(t)
   local e = Edit.new(nil, Buffer.new(
     "1234567\n123\n12345\n"), 1, 4)
-  e:draw(t); assertEq(List{'1234'}, e.canvas)
+  e:draw(t, true); assertEq(List{'1234'}, e.canvas)
   e.th, e.tw = 2, 4; t:init(2, 4)
-  e:draw(t)
-  assertEq(List{'1234', '123 '}, e.canvas)
-  e.vl = 2; e:draw(t)
-  assertEq(List{'123 ', '1234'}, e.canvas)
-  assertEq("123 \n1234", tostring(t))
+  e:draw(t, true)
+  assertEq(List{'1234', '123'}, e.canvas)
+  e.vl = 2; e:draw(t, true)
+  assertEq(List{'123', '1234'}, e.canvas)
+  assertEq("123\n1234", tostring(t))
 end)
 
 local function mockedModel(h, w, s, inputs)
@@ -85,10 +85,10 @@ end
 
 local SPLIT_CANVAS_H = [[
 1234567
-123    
+123
 -------
 1234567
-123    ]]
+123]]
 test('splitH', nil, function()
   types.ViewId = 0
   local m = mockedModel(
@@ -102,9 +102,8 @@ test('splitH', nil, function()
 end)
 
 local SPLIT_CANVAS_V = [[
-1234567  |1234567   
-123      |123       ]]
-
+1234567  |1234567
+123      |123]]
 test('splitV', nil, function()
   types.ViewId = 0
   local m = mockedModel(
