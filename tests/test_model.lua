@@ -104,11 +104,11 @@ test('move', nil, function()
 
   -- now test insert on overflow
   m.inputCo = mockInputs('k l l l j i x') -- up 3*right down insert-x
+  e.vl = 2
   steps(m, 4); assertEq(1, e.l); assertEq(6, e.c); -- k l l l
   m:step();    assertEq(2, e.l); assertEq(6, e.c); -- j
   m:step();    assertEq(2, e.l); assertEq(6, e.c); -- i
-  m:step();    assertEq(2, e.l); assertEq(4, e.c); -- x
-  m.vl = 2
+  m:step();    assertEq(2, e.l); assertEq(5, e.c); -- x
                assertEq(List{'123x'}, e.canvas)
 end)
 

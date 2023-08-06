@@ -95,11 +95,17 @@ Action{
 }
 Action{
   name='right', brief='move cursor right',
-  fn = function(mdl) mdl.edit.c = min(mdl.edit.c + 1, #mdl.edit:curLine()) end,
+  fn = function(mdl) mdl.edit.c = min(mdl.edit.c + 1, #mdl.edit:curLine() + 1) end,
 }
 Action{
   name='down', brief='move cursor down',
-  fn = function(mdl) mdl.edit.l = min(mdl.edit.l + 1, mdl.edit:len()) end,
+  fn = function(mdl)
+    local e = mdl.edit
+    e.l = min(mdl.edit.l + 1, e:len() + 1)
+    if e.l > e:len() then
+      e.l, e.c = e:len(), #e:curLine() + 1
+    end
+  end,
 }
 
 

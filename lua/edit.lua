@@ -30,10 +30,13 @@ method(Edit, 'len',     function(e) return e.buf.gap:len() end)
 
 -- These are going to track state/cursor/etc
 method(Edit, 'insert', function(e, s)
-  e.buf.gap:insert(s, e.l, e.c - 1)
-  e.c = min(e.c, #e:curLine())
-  print('insert', e.l, e.c)
-  e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
+  local c = e.c; e.buf.gap:insert(s, e.l, c - 1);
+  e.l, e.c = e.buf.gap:offset(#s, e.l, c)
+  -- if causes cursor to move to next line, move to end of cur line
+  -- except in specific circumstances
+  if e.l > 1 and e.c == 1 and c > 1 and '\n' ~= strLast(s) then
+    e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
+  end
 end)
 method(Edit, 'remove', function(e, off, l, c)
   if off == 0 then return end
