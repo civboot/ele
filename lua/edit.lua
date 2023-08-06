@@ -93,4 +93,8 @@ method(Edit, 'draw', function(e, term, isRight)
   end
 end)
 
+method(Edit, 'drawCursor', function(e, term)
+  term:golc(e.tl + (e.l - e.vl), e.tc + (e.c - e.vc))
+end)
+
 return M
