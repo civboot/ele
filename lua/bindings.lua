@@ -1,7 +1,7 @@
 -- #####################
 -- # Keyboard Bindings
 grequire'types'
-local term = require'plterm'
+local term = require'term'
 
 local M = {}
 
