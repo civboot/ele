@@ -31,7 +31,7 @@ reset()     -- reset the terminal (colors, cursor position)
 
 input()     -- input iterator (coroutine-based)
          return a "next key" function that can be iteratively
-         called to read a key (UTF8 sequences and escape 
+         called to read a key (UTF8 sequences and escape
          sequences returned by function keys are parsed)
 rawinput()  -- same, but UTF8 and escape sequences are not parsed.
 getcurpos() -- return the current position of the cursor
@@ -100,29 +100,6 @@ end
 -- based on public domain code by Luiz Henrique de Figueiredo
 -- http://lua-users.org/lists/lua-l/2009-12/msg00942.html
 
-local unix = { -- direct unix operations
-  out = out,
-  outf = outf,
-  clear    = function()    out("\027[2J") end, -- *whole screen + move cursor
-  cleareol = function()    out("\027[K") end,  -- *from cursor to eol
-  golc     = function(l,c) out("\027[",l,";",c,"H") end, -- * line,col
-  up       = function(n)   out("\027[",n or 1,"A") end, -- *move cursor
-  down     = function(n)   out("\027[",n or 1,"B") end,
-  right    = function(n)   out("\027[",n or 1,"C") end,
-  left     = function(n)   out("\027[",n or 1,"D") end,
-  color = function(f,b,m)
-      if m then out("\027[",f,";",b,";",m,"m")
-      elseif b then out("\027[",f,";",b,"m")
-      else out("\027[",f,"m") end
-  end,
-  hide    = function() out("\027[?25l") end, -- *the cursor
-  show    = function() out("\027[?25h") end, -- *the cursor
-  save    = function() out("\027[s") end,    -- *cursor position
-  restore = function() out("\027[u") end,    -- *cursor position
-  -- reset terminal (clear and reset default colors)
-  reset   = function() out("\027c") end,
-}; M.unix = unix
-
 local debugF = io.open('./out/debug.log', 'w')
 M.debug = function(...)
   for _, v in ipairs({...}) do
@@ -133,18 +110,6 @@ M.debug = function(...)
   debugF:flush()
 end
 local debug = M.debug
-
-unix.colors = {
-  default = 0,
-  -- foreground colors
-  black = 30, red = 31, green = 32, yellow = 33,
-  blue = 34, magenta = 35, cyan = 36, white = 37,
-  -- backgroud colors
-  bgblack = 40, bgred = 41, bggreen = 42, bgyellow = 43,
-  bgblue = 44, bgmagenta = 45, bgcyan = 46, bgwhite = 47,
-  -- attributes
-  reset = 0, normal= 0, bright= 1, bold = 1, reverse = 7,
-}
 
 ----------------
 -- parse a string of key presses into its parts
@@ -271,6 +236,90 @@ local function codeKey(c)
   elseif ctrlChar(c) then return '^'..ctrlChar(c) end
   return string.char(c)
 end
+
+------------------------------------------------------------------------
+-- Fake: a fake terminal for testing
+local FakeTerm = civ.newTy(); M.FakeTerm = FakeTerm
+constructor(FakeTerm, function(ty_, h, w)
+  local t = {h=h, w=w}
+  FakeTerm.clear(t)
+  return setmetatable(t, ty_)
+end)
+FakeTerm.__index = civ.methodIndex
+methods(FakeTerm, {
+  clear=function(t)
+    for l=1, t.h do
+      local line = {}; for c=1, t.w do line[c] = '' end
+      t[l] = line
+    end
+  end,
+  cleareol=function(t, l, c)
+    t:assertLC(l, c)
+    local line = t[l]
+    for i=c, t.w do line[i] = '' end
+  end,
+  __tostring=function(t)
+    local out = {}
+    for i, line in ipairs(t) do out[i] = table.concat(line) end
+    return table.concat(out)
+  end,
+  size=function(t) return t.h, t.w end,
+
+  -- set is the main method used.
+  --
+  set=function(t, l, c, char)
+    t:assertLC(l, c)
+    assert(char); assert(char ~= '')
+    t[l][c] = char
+  end,
+
+  start=function() end,
+  stop=function() end,
+
+  -- utility
+  assertLC=function(t, l, c)
+    assert(l >= 1 and l <= t.h, "l OOB")
+    assert(c >= 1 and c <= t.w, "c OOB")
+  end,
+})
+
+------------------------------------------------------------------------
+-- Unix: evertying below this is for manipulating a unix terminal
+
+local unix = { -- direct unix operations
+  out = out,
+  outf = outf,
+  clear    = function()    out("\027[2J") end, -- *whole screen + move cursor
+  cleareol = function()    out("\027[K") end,  -- *from cursor to eol
+  golc     = function(l,c) out("\027[",l,";",c,"H") end, -- * line,col
+  up       = function(n)   out("\027[",n or 1,"A") end, -- *move cursor
+  down     = function(n)   out("\027[",n or 1,"B") end,
+  right    = function(n)   out("\027[",n or 1,"C") end,
+  left     = function(n)   out("\027[",n or 1,"D") end,
+  color = function(f,b,m)
+      if m then out("\027[",f,";",b,";",m,"m")
+      elseif b then out("\027[",f,";",b,"m")
+      else out("\027[",f,"m") end
+  end,
+  hide    = function() out("\027[?25l") end, -- *the cursor
+  show    = function() out("\027[?25h") end, -- *the cursor
+  save    = function() out("\027[s") end,    -- *cursor position
+  restore = function() out("\027[u") end,    -- *cursor position
+  -- reset terminal (clear and reset default colors)
+  reset   = function() out("\027c") end,
+}; M.unix = unix
+
+unix.colors = {
+  default = 0,
+  -- foreground colors
+  black = 30, red = 31, green = 32, yellow = 33,
+  blue = 34, magenta = 35, cyan = 36, white = 37,
+  -- backgroud colors
+  bgblack = 40, bgred = 41, bggreen = 42, bgyellow = 43,
+  bgblue = 44, bgmagenta = 45, bgcyan = 46, bgwhite = 47,
+  -- attributes
+  reset = 0, normal= 0, bright= 1, bold = 1, reverse = 7,
+}
 
 unix.input = function()
   -- return a "read next key" function that can be used in a loop
@@ -407,9 +456,9 @@ unix.size = function()
   -- return current screen dimensions (line, coloumn as integers)
   unix.save()
   unix.down(999); unix.right(999)
-  local l, c = unix.getcurpos()
+  local h, w = unix.getcurpos()
   unix.restore()
-  return l, c
+  return h, w
 end
 
 ------------------------------------------------------------------------
@@ -469,5 +518,35 @@ unix.exitRawMode = function()
   mt.__gc()
   setmetatable(unix.ATEXIT, nil)
 end
+
+-- global unix term
+M.UnixTerm = {
+  w=-1, h=-1,
+  l=-1, c=-1,
+  golc=function(t, l, c)
+    if t.l == l and t.c == c then return end
+    unix.golc(l, c)
+    t.l, t.c = l, c
+  end,
+  clear=function(t)
+    t.l, t.c = 1, 1
+    unix.clear()
+  end,
+  cleareol=function(t, l, c)
+    t:golc(l, c)
+    unix.cleareol()
+  end,
+  size=function(t)
+    t.h, t.w = unix.size()
+    return t.h, t.w
+  end,
+  set=function(t, l, c, char)
+    t:golc(l, c)
+    io.write(char)
+    c = min(c+1, t.w)
+  end,
+  start=unix.enterRawMode,
+  stop=unix.exitRawMode,
+}
 
 return M

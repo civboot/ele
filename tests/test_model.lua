@@ -32,7 +32,7 @@ test('edit', nil, function()
 end)
 
 local function mockedModel(h, w, s, inputs)
-  local app = Model.new(h, w)
+  local app = Model.new(term.FakeTerm(h, w), h, w)
   local e = Edit.new(app, Buffer.new(s), h, w)
   app.view, app.edit = e, e
   app.inputCo = mockInputs(inputs or '')
@@ -139,7 +139,7 @@ local TEST_MSG = [[
 
 --[[
 test('display', nil, function()
-  local sh = Model.new()
+  local sh = Model.new(term.UnixTerm)
   local e = sh.view
   e.buf.gap:insert(TEST_MSG, 1, 1)
   e.l, e.c = 5, 15

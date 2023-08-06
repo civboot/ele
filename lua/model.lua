@@ -23,7 +23,7 @@ local MODE = { command='command', insert='insert' }
 local Actions = action.Actions
 
 method(Model, '__tostring', function() return 'APP' end)
-method(Model, 'new', function(h, w)
+method(Model, 'new', function(term_, h, w)
   local sts = Buffer.new()
   local mdl = {
     mode='command',
@@ -33,7 +33,7 @@ method(Model, 'new', function(h, w)
     bindings=Bindings.default(),
     chord=nil, chordKeys=List{},
 
-    inputCo=nil,
+    inputCo=nil, term=term_,
     events=LL(),
     statusBuf=sts,
   }
@@ -178,7 +178,7 @@ bindings.BINDINGS:updateCommand{
 
 local function main()
   print"## Running (shrm ctl+q to quit)"
-  local sh = Model.new(20, 10)
+  local sh = Model.new(term.UnixTerm, 20, 10)
   sh:app()
 end
 

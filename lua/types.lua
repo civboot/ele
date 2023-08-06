@@ -91,7 +91,7 @@ M.Model = struct('Model', {
   {'bindings', Bindings},
   {'chord', Map, false}, {'chordKeys', List},
 
-  {'inputCo'},
+  'inputCo', 'term',
 
   {'statusBuf', Buffer},
 })
