@@ -1,10 +1,13 @@
 local civ = require'civ':grequire()
 civ.TESTING = true
-grequire'model'
+local model = grequire'model'
 local shix = require'shix'
 local term = require'term'; local tunix = term.unix
 local types = require'types'
 local window = require'window'
+local data = require'data'
+
+local add = table.insert
 
 test('keypress', nil, function()
   assertEq({'a', 'b'},  term.parseKeys('a b'))
@@ -36,16 +39,24 @@ end)
 
 local function mockedModel(h, w, s, inputs)
   types.ViewId = 0
-  local app = Model.new(
+  local mdl = Model.new(
     term.FakeTerm(h, w),
     mockInputs(inputs or ''):iterV())
-  local e = Edit.new(app, Buffer.new(s), h, w)
-  app.view, app.edit = e, e
-  app.status = function(t, ...)
+  local e = Edit.new(mdl, Buffer.new(s), h, w)
+  mdl.view, mdl.edit = e, e
+  mdl.status = function(t, ...)
     if ty(t) == Tbl then print(concat(t))
     else print(t, ...) end
   end
-  return app
+  mdl:draw()
+  return mdl
+end
+
+local function testModel(h, w)
+  local mdl, status, eTest = model.testModel(
+    term.FakeTerm(h, w), mockInputs(''):iterV())
+  mdl:draw()
+  return mdl, status, eTest
 end
 
 test('insert', nil, function()
@@ -193,4 +204,29 @@ test('splitEdit', nil, function()
   stepKeys(m, '^J j j i 4 return b o t t o m')
     assertEq(SPLIT_EDIT_2, tostring(m.term))
     assertEq(3, eB.l); assertEq(7, eB.c)
+end)
+
+local STATUS_1 = [[
+*123456789*12345
+1 This is to man
+----------------
+
+]]
+
+local STATUS_2 = [[
+hi *123456789*12
+1 This is to man
+----------------
+
+]]
+
+test('withStatus', nil, function()
+  local m, status, eTest = testModel(5, 16)
+  local t = m.term
+  assertEq(eTest, m.edit)
+  assertEq(1, indexOf(m.view, eTest))
+  assertEq(2, indexOf(m.view, status))
+  assertEq(STATUS_1, tostring(t))
+  stepKeys(m, 'i h i space')
+  assertEq(STATUS_2, tostring(t))
 end)

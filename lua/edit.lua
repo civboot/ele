@@ -19,6 +19,9 @@ method(Edit, 'new', function(container, buf)
     canvas=nil,
   }
 end)
+method(Edit, '__tostring', function(e)
+  return string.format('Edit[id=%s]', e.id)
+end)
 method(Edit, 'copy', function(e)
   return copy(e, {id=nextViewId()})
 end)

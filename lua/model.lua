@@ -46,10 +46,10 @@ end)
 
 -- #####################
 -- # Utility methods
-method(Model, 'status', function(self, m)
-  if type(m) ~= 'string' then m = concat(m) end
-  self.statusBuf.gap:append(m)
-  pnt('Status: ', m)
+method(Model, 'status', function(self, msg)
+  if type(msg) ~= 'string' then msg = concat(msg) end
+  self.statusBuf.gap:append(msg)
+  pnt('Status: ', msg, self.edit.id)
 end)
 method(Model, 'spent', function(self)
   return shix.epoch() - self.start
@@ -70,12 +70,11 @@ end)
 -- #####################
 --   * draw
 method(Model, 'draw', function(mdl)
-  local h, w = mdl.term:size()
   mdl.h, mdl.w = mdl.term:size()
+  pnt('mdl h,w', mdl.h, mdl.w)
   update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
   mdl.view:draw(mdl.term, true)
-  local e = mdl.edit
-  e:drawCursor(mdl.term)
+  mdl.edit:drawCursor(mdl.term)
 end)
 
 -- #####################
@@ -174,12 +173,18 @@ bindings.BINDINGS:updateCommand{
 -- #####################
 -- # Main
 
+M.testModel = function(t, inp)
+  local mdl = Model.new(t, inp)
+  local status = mdl.edit
+  local eTest = window.splitEdit(mdl.edit, 'h')
+  eTest = window.replaceEdit(eTest, Edit.new(mdl, Buffer.new(data.TEST_MSG)))
+  mdl.edit = eTest
+  return mdl, status, eTest
+end
+
 local function main()
   print"## Running (ctl+q to quit)"
-  local mdl = Model.new(term.UnixTerm, term.unix.input())
-  local eT = window.splitEdit(mdl.edit, 'h')
-  eT = window.replaceEdit(eT, Edit.new(mdl, Buffer.new(data.TEST_MSG)))
-  window.edit = eT
+  local mdl = M.testModel(term.UnixTerm, term.unix.input())
   mdl:app()
 end
 

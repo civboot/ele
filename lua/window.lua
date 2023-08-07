@@ -38,12 +38,14 @@ end
 
 -- Replace the edit object with a new one
 M.replaceEdit = function(edit, new)
+  pnt('replaceEdit', new)
   local container = edit.container
   if ty(container) == Model then container.edit = new
-  else container[indexof(container, edit)] = new
+  else container[indexOf(container, edit)] = new
   end
   new.container = container; edit.container = nil;
   edit.close()
+  pnt('replaceEdit return', new)
   return new
 end
 
