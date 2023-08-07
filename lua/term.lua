@@ -100,16 +100,10 @@ end
 -- based on public domain code by Luiz Henrique de Figueiredo
 -- http://lua-users.org/lists/lua-l/2009-12/msg00942.html
 
-local debugF = io.open('./out/debug.log', 'w')
-M.debug = function(...)
-  for _, v in ipairs({...}) do
-    debugF:write(tostring(v))
-    debugF:write('\t')
-  end
-  debugF:write('\n')
-  debugF:flush()
-end
-local debug = M.debug
+local stdoutPath = './out/STDOUT'
+local stdout  = io.stdout
+local stderr  = io.stderr
+local stdoutF = io.open(stdoutPath, 'w')
 
 ----------------
 -- parse a string of key presses into its parts
@@ -511,12 +505,17 @@ unix.enterRawMode = function()
     __gc = function()
       unix.clear()
       unix.restoremode(SAVED)
-      debug('Exited raw mode')
+      io.stdout = stdout
+      io.stderr = stderr
+      pnt('Exited raw mode')
    end,
   }
+  print('Entering raw mode, stdout at: ' .. stdoutPath)
   setmetatable(unix.ATEXIT, atexit)
+  io.stdout = stdoutF
+  io.stderr = stdoutF
   unix.setrawmode()
-  debug('Entered raw mode')
+  pnt('Entered raw mode')
 end
 unix.exitRawMode = function()
   local mt = getmetatable(unix.ATEXIT); assert(mt)

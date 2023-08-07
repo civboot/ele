@@ -18,13 +18,13 @@ test('ctrl', nil, function()
 end)
 
 local function mockInputs(inputs)
-  return List(term.parseKeys(inputs)):iterValues()
+  return List(term.parseKeys(inputs))
 end
 
 test('edit', nil, function()
   local t = term.FakeTerm(1, 4); assert(t)
-  local e = Edit.new(nil, Buffer.new(
-    "1234567\n123\n12345\n"), 1, 4)
+  local e = Edit.new(nil, Buffer.new("1234567\n123\n12345\n"))
+  e.tl, e.tc, e.th, e.tw = 1, 1, 1, 4
   e:draw(t, true); assertEq(List{'1234'}, e.canvas)
   e.th, e.tw = 2, 4; t:init(2, 4)
   e:draw(t, true)
@@ -35,9 +35,10 @@ test('edit', nil, function()
 end)
 
 local function mockedModel(h, w, s, inputs)
+  types.ViewId = 0
   local app = Model.new(
     term.FakeTerm(h, w),
-    mockInputs(inputs or ''))
+    mockInputs(inputs or ''):iterV())
   local e = Edit.new(app, Buffer.new(s), h, w)
   app.view, app.edit = e, e
   app.status = function(t, ...)
@@ -82,6 +83,11 @@ test('back', nil, function()
 end)
 
 local function steps(m, num) for _=1, num do m:step() end end
+local function stepKeys(m, keys)
+  local inp = mockInputs(keys)
+  m.inputCo = inp:iterV()
+  for _ in ipairs(inp) do m:step() end
+end
 
 test('move', nil, function()
   local m = mockedModel(
@@ -96,13 +102,14 @@ test('move', nil, function()
   m:step(); assertEq(3, e.l); assertEq(3, e.c)
 
   -- now test boundaries
-  m.inputCo = mockInputs('j k l') -- down right up right
+  m.inputCo = mockInputs('j k l'):iterV() -- down right up right
   m:step(); assertEq(3, e.l); assertEq(6, e.c) -- down (does nothing)
   m:step(); assertEq(2, e.l); assertEq(6, e.c) -- up    (column overflow keep)
   m:step(); assertEq(2, e.l); assertEq(4, e.c) -- right (column overflow set)
 
   -- now test insert on overflow
-  m.inputCo = mockInputs('k l l l j i x') -- up 3*right down insert-x
+  -- up 3*right down insert-x-
+  m.inputCo = mockInputs('k l l l j i x'):iterV()
   steps(m, 4); assertEq(1, e.l); assertEq(7, e.c); -- k l l l
                assertEq(1, e.vl)
   m:step();    assertEq(2, e.l); assertEq(7, e.c); -- j
@@ -138,7 +145,6 @@ local SPLIT_CANVAS_H = [[
 1234567
 123]]
 test('splitH', nil, function()
-  types.ViewId = 0
   local m = mockedModel(
     5, 7, -- h, w
     '1234567\n123')
@@ -153,7 +159,6 @@ local SPLIT_CANVAS_V = [[
 1234567  |1234567
 123      |123]]
 test('splitV', nil, function()
-  types.ViewId = 0
   local m = mockedModel(
     2, 20, -- h, w
     '1234567\n123')
@@ -162,4 +167,30 @@ test('splitV', nil, function()
   assertEq(10, eR.tw);
   assertEq(9,  eL.tw)
   assertEq(SPLIT_CANVAS_V, tostring(m.term))
+end)
+
+
+local SPLIT_EDIT_1 = [[
+abc1234
+123
+-------
+abc1234
+123]]
+local SPLIT_EDIT_2 = [[
+abc1234
+1234
+-------
+1234
+bottom]]
+test('splitEdit', nil, function()
+  local m = mockedModel(
+    5, 7, -- h, w
+    '1234567\n123')
+  local w, eT, eB = splitSetup(m, 'h')
+  stepKeys(m, 'i a b c')
+    assertEq(SPLIT_EDIT_1, tostring(m.term))
+  -- go down twice (to EOF) then insert stuff
+  stepKeys(m, '^J j j i 4 return b o t t o m')
+    assertEq(SPLIT_EDIT_2, tostring(m.term))
+    assertEq(3, eB.l); assertEq(7, eB.c)
 end)

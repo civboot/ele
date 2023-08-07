@@ -120,8 +120,8 @@ method(Gap, 'remove', function(g, ...)
     b, rem, t = sub(rem, 1, c-1), sub(rem, c, c2), sub(rem, c2+1)
     g.bot:add(b .. t)
   else -- has new line (out=str)
-    b, rem[1]    = strsplit(rem[1], c-1)
-    rem[#rem], t = strsplit(rem[#rem], c2)
+    b, rem[1]    = strdivide(rem[1], c-1)
+    rem[#rem], t = strdivide(rem[#rem], c2)
     rem = concat(rem, '\n')
     g.bot:add(b .. t)
   end
@@ -134,13 +134,14 @@ end)
 method(Gap, 'sub', function(g, ...)
   local l, c, l2, c2 = lcs(...)
   local s = List{}
-  for i=l, min(l2, #g.bot)   do s:add(g.bot[i]) end
-  for i=1, min(l2-l, #g.top) do s:add(g.top[i]) end
-  if nil == c then -- only lines
+  for i=l, min(l2,   #g.bot)        do s:add(g.bot[i]) end
+  for i=1, min((l2-l+1)-#s, #g.top) do s:add(g.top[#g.top - i + 1]) end
+  pnt('sub lines', l, l2, l2-l, s)
+  if nil == c then -- skip, only lines
   else
     s[1] = sub(s[1], c, CMAX)
     if #s >= l2 - l then s[#s] = sub(s[#s], 1, c2) end
-    s = concat(s, '\n')
+    s = table.concat(s, '\n')
   end
   return s
 end)

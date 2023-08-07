@@ -64,12 +64,18 @@ test('remove', nil, function()
   assertEq('ab\nd', tostring(g));
 end)
 
+local function subTests(g)
+  assertEq(List{},          g:sub(1, 0))
+  assertEq(List{'ab'},      g:sub(1, 1))
+  assertEq(List{'ab', 'c'}, g:sub(1, 2))
+  assertEq(List{'c', ''},   g:sub(2, 3))
+  assertEq('b\nc',      g:sub(1, 2, 2, 1))
+end
 test('sub', nil, function()
   local g = Gap.new('ab\nc\n\nd')
-  assertEq({},          g:sub(1, 0))
-  assertEq({'ab'},      g:sub(1, 1))
-  assertEq({'ab', 'c'}, g:sub(1, 2))
-  assertEq('b\nc',      g:sub(1, 2, 2, 1))
+  g:set(4); subTests(g)
+  g:set(1); subTests(g)
+  g:set(2); subTests(g)
 end)
 
 local function _testOffset(g)

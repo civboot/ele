@@ -18,11 +18,14 @@ local BufFillerDash = {
 local function isSplitKind(w, kind)
   return ty(w) == Window and w.splitkind == kind
 end
+local SPLIT_KINDS = Set{'h', 'v'}
 
 -- split the edit horizontally, return the new copied edit
 -- (which will be on the top/left)
 M.splitEdit = function(edit, kind)
-  assert(kind); assert(Edit == ty(edit))
+  pnt('splitEdit ', ty(edit), kind)
+  assert(SPLIT_KINDS[kind]);
+  assert(Edit == ty(edit))
   local container = edit.container
   if not isSplitKind(edit, kind) then
     container = M.wrapWindow(edit)
@@ -32,6 +35,19 @@ M.splitEdit = function(edit, kind)
   table.insert(container, indexOf(container, edit), new)
   return new
 end
+
+-- Replace the edit object with a new one
+M.replaceEdit = function(edit, new)
+  local container = edit.container
+  if ty(container) == Model then container.edit = new
+  else container[indexof(container, edit)] = new
+  end
+  new.container = container; edit.container = nil;
+  edit.close()
+  return new
+end
+
+
 
 -- wrap an edit/window in a new window
 M.wrapWindow = function(w)

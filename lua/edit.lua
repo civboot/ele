@@ -8,13 +8,13 @@ local term = require'term'; tunix = term.unix
 M = {}
 
 -- Implements an edit view and state
-method(Edit, 'new', function(container, buf, h, w)
+method(Edit, 'new', function(container, buf)
   return Edit{
     id=nextViewId(),
     buf=buf,
     l=1, c=1, vl=1, vc=1,
-    th=h, tw=w,
-    tl=1, tc=1,
+    th=-1, tw=-1,
+    tl=-1, tc=-1,
     container=container,
     canvas=nil,
   }
@@ -22,6 +22,7 @@ end)
 method(Edit, 'copy', function(e)
   return copy(e, {id=nextViewId()})
 end)
+method(Edit, 'close', function(e) print('TODO<edit close>') end)
 method(Edit, 'offset', function(e, off)
   return e.buf.gap:offset(off, e.l, e.c)
 end)
@@ -46,10 +47,11 @@ end)
 -- These are going to track state/cursor/etc
 method(Edit, 'insert', function(e, s)
   local c = e.c; e.buf.gap:insert(s, e.l, c - 1);
+  print('insert', s, e.l, c)
   e.l, e.c = e.buf.gap:offset(#s, e.l, c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
-  if e.l > 1 and e.c == 1 and c > 1 and '\n' ~= strLast(s) then
+  if (e.l > 1) and (e.c == 1) and ('\n' ~= strLast(s)) then
     e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
   end
 end)
@@ -69,13 +71,13 @@ end)
 
 -- draw to term (l, c, w, h)
 method(Edit, 'draw', function(e, term, isRight)
-  assert(term)
-  e:viewCursor()
+  assert(term); e:viewCursor()
   e.canvas = List{}
   for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.th - 1)) do
     e.canvas:add(string.sub(line, e.vc, e.vc + e.tw - 1))
   end
   local l = e.tl
+  pnt('edit draw', e.vl, e.th, e.vl + e.th - 1, e.canvas)
   for _, line in ipairs(e.canvas) do
     local c = e.tc
     for char in line:gmatch'.' do

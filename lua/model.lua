@@ -12,9 +12,10 @@ local gap  = require'gap'
 local edit = require'edit'
 local buffer = require'buffer'
 local bindings = require'bindings'
+local data = require'data'
+local window = require'window'
 
 local yld = coroutine.yield
-local debug = term.debug
 
 local M = {} -- module
 
@@ -38,7 +39,7 @@ method(Model, 'new', function(term_, inputCo)
     events=LL(),
     statusBuf=sts,
   }
-  mdl.view = Edit.new(mdl, sts, h, w)
+  mdl.view = Edit.new(mdl, sts)
   mdl.edit = mdl.view
   return setmetatable(mdl, Model)
 end)
@@ -48,7 +49,7 @@ end)
 method(Model, 'status', function(self, m)
   if type(m) ~= 'string' then m = concat(m) end
   self.statusBuf.gap:append(m)
-  term.debug('Status: ', m)
+  pnt('Status: ', m)
 end)
 method(Model, 'spent', function(self)
   return shix.epoch() - self.start
@@ -103,9 +104,10 @@ method(Model, 'defaultAction', function(self, keys)
 end)
 
 method(Model, 'update', function(self)
-  debug('update loop')
+  pnt('update loop')
   while not self.events:isEmpty() do
     local ev = self.events:popBack(); assert((ev.depth or 1) <= 12)
+    pnt('Event', ev)
     local evName = assert(ev[1])
     local act = Actions[evName]
     if not act then error('unknown action: ' .. tfmt(ev)) end
@@ -115,7 +117,7 @@ method(Model, 'update', function(self)
       self.events:addBack(e)
     end
   end
-  debug('update end')
+  pnt('update end')
 end)
 -- the main loop
 
@@ -124,13 +126,13 @@ end)
 method(Model, 'step', function(self)
   local key = self.inputCo()
   self.start = shix.epoch()
-  debug('got key', key)
+  pnt('got key', key)
   if key == '^C' then
-    debug('\nctl+C received, ending\n')
+    pnt('\nctl+C received, ending\n')
     return false
   end
   if key then self.events:addFront({'rawKey', key=key}) end
-  debug('calling update')
+  pnt('calling update')
   self:update()
   if self.mode == 'quit' then return false end
   self:draw()
@@ -173,9 +175,12 @@ bindings.BINDINGS:updateCommand{
 -- # Main
 
 local function main()
-  print"## Running (shrm ctl+q to quit)"
-  local sh = Model.new(term.UnixTerm, term.unix.input())
-  sh:app()
+  print"## Running (ctl+q to quit)"
+  local mdl = Model.new(term.UnixTerm, term.unix.input())
+  local eT = window.splitEdit(mdl.edit, 'h')
+  eT = window.replaceEdit(eT, Edit.new(mdl, Buffer.new(data.TEST_MSG)))
+  window.edit = eT
+  mdl:app()
 end
 
 if not civ.TESTING then main() end
