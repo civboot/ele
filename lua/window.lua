@@ -107,14 +107,14 @@ method(Window, 'draw', function(w, term, isRight)
   assert(#w > 0, "Drawing empty window")
   if not w.splitkind then
     assert(#w == 1)
-    updateFields(w[1], w, {'tl', 'tc', 'th', 'tw'})
+    updateKeys(w[1], w, {'tl', 'tc', 'th', 'tw'})
     child:draw(term, isRight)
   elseif 'v' == w.splitkind then -- verticle split
     assert(#w > 1)
     local tc, twRemain, period = w.tc, w.tw, M.calcPeriod(w.tw, #VSEP, #w)
     for ci, child in ipairs(w) do
       local isLast = ci == #w
-      updateFields(w[ci], w, {'tl', 'th'}); child.tc = tc
+      updateKeys(w[ci], w, {'tl', 'th'}); child.tc = tc
       tc, twRemain, w[ci].tw = drawChild(isLast, tc, twRemain, period, #VSEP)
       child:draw(term, isRight and isLast)
       if not isLast then drawSepV(term, w.tl, tc - #VSEP, w.th, VSEP) end
@@ -123,7 +123,7 @@ method(Window, 'draw', function(w, term, isRight)
     assert(#w > 1)
     local tl, thRemain, period = w.tl, w.th, M.calcPeriod(w.th, #HSEP, #w)
     for ci, child in ipairs(w) do
-      updateFields(child, w, {'tc', 'tw'}); child.tl = tl
+      updateKeys(child, w, {'tc', 'tw'}); child.tl = tl
       tl, thRemain, child.th = drawChild(ci == #w, tl, thRemain, period, #HSEP)
       child:draw(term, isRight)
       if ci < #w then drawSepH(term, tl - #HSEP, w.tc, w.tw, HSEP) end

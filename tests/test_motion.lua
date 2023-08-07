@@ -1,6 +1,12 @@
 require'civ':grequire()
 grequire'motion'
 
+test('distance', nil, function()
+  assertEq(3, decDistance(1, 4))
+  assertEq(2, decDistance(5, 1))
+  assertEq(5, decDistance(5, 5))
+end)
+
 test('wordKind', nil, function()
   assertEq('let', wordKind('a'))
   assertEq('()',  wordKind('('))

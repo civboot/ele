@@ -36,3 +36,33 @@ Where:
 * background processes (timer, file watcher, etc)
 * update methods can emit new events
 
+
+## Bindings and Chain
+The `bindings` are provided by (bascically) a nested Map of valid keys:
+
+```
+model.bindings = {
+  'a': Action(name='append', fn=function(mdl) ... end,
+  'leader': {
+    'a': Action(name='leader.add', fn=...),
+  }
+}
+```
+
+When a key is pressed:
+- look in `chord` or `bindings` for the key (and cleanup chord if not)
+ - if mapped to an action then call the `fn`
+ - if mapped to another Bindings map then set `chord` to that.
+ - if mapped to Chain then set `chain` to that.
+
+If the `action.fn` returns additional events they are executed until empty.
+
+If `chain` is set then future events will be handled by `chain.fn` until it
+returns `nil` (when `chain` will be set back to `nil`). If it returns a new
+chain then that will be used instead.
+
+The purpose of the chain is for chords like `dta` (delete till 'a').
+The "delete" action has to accept a movement event from the _next_ action
+and the "till" action has to accept a single rawKey value.
+
+

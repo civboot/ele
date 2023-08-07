@@ -73,7 +73,7 @@ M.Model = struct('Model', {
   {'start', Epoch}, {'lastDraw', Epoch},
   {'bindings', Bindings},
   {'chord', Map, false}, {'chordKeys', List},
-
+  'chain',
   'inputCo', 'term',
 })
 

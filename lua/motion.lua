@@ -2,6 +2,12 @@
 M = {}
 local byte, char = string.byte, string.char
 
+-- decrease distance (start -> end) by 1
+M.decDistance = function(s, e)
+  if s == e then return e end
+  return (s < e) and (e - 1) or (e + 1)
+end
+
 local WordKind = {}; M.WordKind = WordKind -- ws, sym, let
 for c=0, 127 do
   local ch, kind = char(c), nil

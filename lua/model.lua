@@ -104,18 +104,36 @@ method(Model, 'defaultAction', function(self, keys)
   end
 end)
 
+
+method(Model, 'actRaw', function(self, ev)
+  local act = Actions[ev[1]]
+  pnt('actRaw', ev)
+  if not act then error('unknown action: ' .. tfmt(ev)) end
+  local out = act.fn(self, ev) or List{}
+  pnt('actRaw done')
+  return out
+end)
+
+method(Model, 'actionHandler', function(self, out, depth)
+  while #out > 0 do
+    local e = table.remove(out); e.depth = (depth or 1) + 1
+    self.events:addBack(e)
+  end
+end)
+
 method(Model, 'update', function(self)
   while not self.events:isEmpty() do
     local ev = self.events:popBack(); assert((ev.depth or 1) <= 12)
-    pnt('Event', ev)
-    local evName = assert(ev[1])
-    local act = Actions[evName]
-    if not act then error('unknown action: ' .. tfmt(ev)) end
-    local events = act.fn(self, ev) or {}
-    while #events > 0 do
-      local e = table.remove(events); e.depth = (ev.depth or 1) + 1
-      self.events:addBack(e)
+    pnt('Event: ', ev)
+    local out = nil
+    if self.chain then
+      out = self.chain:fn(self, ev); if not out then
+        self.chain = nil; out = List{}
+      end
+    else out = self:actRaw(ev)
     end
+    if ty(out) ~= List then error('action returned non-list: '..tfmt(out)) end
+    self:actionHandler(out, ev.depth)
   end
 end)
 -- the main loop
@@ -164,12 +182,16 @@ bindings.BINDINGS:updateInsert{
 
 -- Command Mode
 bindings.BINDINGS:updateCommand{
-  ['q q'] = A.quit,
+  ['q q'] = A.quit, ['^Q ^Q'] = A.quit,
   i       = A.insert,
+  -- direct modification
+  A=A.appendLine, C=A.changeLine, D=A.deleteLine,
+  -- movement
   h=A.left, j=A.down, k=A.up, l=A.right,
   w=A.forword, b=A.backword,
   ['0']=A.SoL, ['$']=A.EoL,
-  A=A.appendLine, C=A.changeLine, D=A.deleteLine,
+  -- movement chains
+  d=A.delete,
 }
 
 -- #####################
