@@ -93,6 +93,7 @@ method(Edit, 'draw', function(e, term, isRight)
   end
 end)
 
+-- Called by model for only the focused editor
 method(Edit, 'drawCursor', function(e, term)
   term:golc(e.tl + (e.l - e.vl), e.tc + (e.c - e.vc))
 end)

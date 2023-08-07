@@ -166,6 +166,7 @@ bindings.BINDINGS:updateCommand{
   ['q q'] = A.quit,
   i       = A.insert,
   h=A.left, j=A.down, k=A.up, l=A.right,
+  w=A.forword, b=A.backword,
 }
 
 -- #####################

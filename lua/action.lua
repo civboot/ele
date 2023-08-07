@@ -1,6 +1,7 @@
 local civ  = require'civ':grequire()
 grequire'types'
 local term = require'term'
+local motion = require'motion'
 
 local mod = {}
 mod.Actions = {}
@@ -87,21 +88,15 @@ Action{
 }
 Action{
   name='left', brief='move cursor left',
-  fn = function(mdl)
-    mdl.edit.c = max(1, mdl.edit.c - 1)
-  end,
+  fn = function(mdl) mdl.edit.c = max(1, mdl.edit.c - 1) end,
 }
 Action{
   name='up', brief='move cursor up',
-  fn = function(mdl)
-    mdl.edit.l = max(1, mdl.edit.l - 1)
-  end,
+  fn = function(mdl) mdl.edit.l = max(1, mdl.edit.l - 1) end,
 }
 Action{
   name='right', brief='move cursor right',
-  fn = function(mdl)
-    mdl.edit.c = min(mdl.edit.c + 1, #mdl.edit:curLine() + 1)
-  end,
+  fn = function(mdl) mdl.edit.c = min(mdl.edit.c + 1, #mdl.edit:curLine() + 1) end,
 }
 Action{
   name='down', brief='move cursor down',
@@ -111,6 +106,20 @@ Action{
     if e.l > e:len() then
       e.l, e.c = e:len(), #e:lastLine() + 1
     end
+  end,
+}
+Action{
+  name='forword', brief='find the start of the next word',
+  fn = function(mdl)
+    local e = mdl.edit
+    e.c = motion.forword(e.curLine(), e.c) or (#e.curLine() + 1)
+  end,
+}
+Action{
+  name='backword', brief='find the start of this (or previous) word',
+  fn = function(mdl)
+    local e = mdl.edit
+    e.c = motion.backword(e.curLine(), e.c) or 1
   end,
 }
 
