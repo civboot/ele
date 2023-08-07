@@ -53,13 +53,7 @@ test('remove', nil, function()
 
   g = Gap.new('ab\nc\n\nd')
   assertEq('ab\nc\n\nd', tostring(g));
-  print('g.bot', #g.bot, g.bot)
-  print('g.top', #g.top, g.top)
   r = g:remove(2, 3)
-  print('r', r)
-  print('g', g)
-  print('g.bot', #g.bot, g.bot)
-  print('g.top', #g.top, g.top)
   assertEq(List{'c', ''}, r);
   assertEq('ab\nd', tostring(g));
 end)

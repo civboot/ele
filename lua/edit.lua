@@ -25,11 +25,12 @@ end)
 method(Edit, 'copy', function(e)
   return copy(e, {id=nextViewId()})
 end)
-method(Edit, 'close', function(e) print('TODO<edit close>') end)
+method(Edit, 'close', function(e) pnt('TODO<edit close>') end)
 method(Edit, 'offset', function(e, off)
   return e.buf.gap:offset(off, e.l, e.c)
 end)
 method(Edit, 'curLine',  function(e) return e.buf.gap:get(e.l) end)
+method(Edit, 'colEnd', function(e) return #e:curLine() + 1 end)
 method(Edit, 'lastLine', function(e) return e.buf.gap:get(e.buf.gap:len()) end)
 method(Edit, 'len',     function(e) return e.buf.gap:len() end)
 -- bound the column for the line
@@ -50,7 +51,6 @@ end)
 -- These are going to track state/cursor/etc
 method(Edit, 'insert', function(e, s)
   local c = e.c; e.buf.gap:insert(s, e.l, c - 1);
-  print('insert', s, e.l, c)
   e.l, e.c = e.buf.gap:offset(#s, e.l, c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
@@ -80,7 +80,6 @@ method(Edit, 'draw', function(e, term, isRight)
     e.canvas:add(string.sub(line, e.vc, e.vc + e.tw - 1))
   end
   local l = e.tl
-  pnt('edit draw', e.vl, e.th, e.vl + e.th - 1, e.canvas)
   for _, line in ipairs(e.canvas) do
     local c = e.tc
     for char in line:gmatch'.' do
@@ -100,7 +99,8 @@ end)
 
 -- Called by model for only the focused editor
 method(Edit, 'drawCursor', function(e, term)
-  term:golc(e.tl + (e.l - e.vl), e.tc + (e.c - e.vc))
+  local c = min(e.c, #e:curLine() + 1)
+  term:golc(e.tl + (e.l - e.vl), e.tc + (c - e.vc))
 end)
 
 return M

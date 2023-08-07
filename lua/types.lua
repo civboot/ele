@@ -63,37 +63,18 @@ M.Bindings = struct('Bindings', {
   {'insert', Map}, {'command', Map},
 })
 
-M.Lede = struct('Lede', {
-  {'mode', Str}, -- the UI mode (command, insert)
-  {'h', Num}, {'w', Num},
-  'view', -- Edit or Cols or Rows
-  'edit', -- The active editor
-  {'buffers', List}, {'bufferI', Num},
-  {'start', Epoch}, {'lastDraw', Epoch},
-  {'bindings', Bindings},
-  {'chord', Map, false}, {'chordKeys', List},
-
-  {'inputCo'},
-
-  -- events from inputCo (LL)
-  {'events'},
-
-  {'statusBuf', Buffer},
-})
-
 M.Model = struct('Model', {
   {'mode', Str}, -- the UI mode (command, insert)
   {'h', Num}, {'w', Num}, -- window height/width
   'view', -- Edit or Cols or Rows
   'edit', -- The active editor
+  'statusEdit', -- default status edit/buffer view
   {'buffers', List}, {'bufferI', Num},
   {'start', Epoch}, {'lastDraw', Epoch},
   {'bindings', Bindings},
   {'chord', Map, false}, {'chordKeys', List},
 
   'inputCo', 'term',
-
-  {'statusBuf', Buffer},
 })
 
 

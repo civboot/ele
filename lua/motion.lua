@@ -6,6 +6,7 @@ local WordKind = {}; M.WordKind = WordKind -- ws, sym, let
 for c=0, 127 do
   local ch, kind = char(c), nil
   if 0 <= c and ch <= ' '        then kind = 'ws'
+  elseif '1' <= ch and ch <= '9' then -- let, leave
   elseif 'a' <= ch and ch <= 'z' then -- let, leave
   elseif 'A' <= ch and ch <= 'Z' then -- let, leave
   elseif ch == '_'               then -- let, leave
@@ -21,9 +22,8 @@ local function wordKind(ch) return WordKind[ch] or 'let' end
 M.wordKind = wordKind
 
 -- Go forward to find the start of the next word
-M.forword = function(s, begin)
-  begin = begin or 1
-  local i, kStart = 2, wordKind(s:sub(begin,begin))
+M.forword = function(s, begin) begin = begin or 1
+  local i, kStart = begin+1, wordKind(s:sub(begin,begin))
   for ch in string.gmatch(s:sub(begin+1), '.') do
     local k = wordKind(ch)
     if k ~= kStart then

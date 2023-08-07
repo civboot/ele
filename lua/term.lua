@@ -471,7 +471,7 @@ end
 local stty = "stty" -- use the default stty
 
 unix.setrawmode = function()
-  return os.execute(stty .. " raw -echo 2> /dev/null")
+  return os.execute(stty .. " raw -echo 2> /dev/null\n")
 end
 
 unix.setsanemode = function()
@@ -485,7 +485,7 @@ end
 local READALL = (_VERSION < "Lua 5.3") and "*a" or "a"
 
 unix.savemode = function()
-  local fh = io.popen(stty .. " -g")
+  local fh = io.popen(stty .. " -g\n")
   local mode = fh:read(READALL)
   local succ, e, msg = fh:close()
   return succ and mode or nil, e, msg
@@ -510,10 +510,11 @@ unix.enterRawMode = function()
       pnt('Exited raw mode')
    end,
   }
-  print('Entering raw mode, stdout at: ' .. stdoutPath)
+  pnt('Entering raw mode, stdout at: ' .. stdoutPath)
   setmetatable(unix.ATEXIT, atexit)
   io.stdout = stdoutF
   io.stderr = stdoutF
+  pnt('Entering raw mode')
   unix.setrawmode()
   pnt('Entered raw mode')
 end

@@ -14,6 +14,7 @@ test('forword', nil, function()
   assertEq(2, forword(' bcd'))
   assertEq(3, forword('--bcd'))
   assertEq(2, forword('a+ bcd'))
+  assertEq(5, forword('+12 +de', 2))
 end)
 
 test('backword', nil, function()

@@ -14,7 +14,7 @@ local M = {} -- module
 require'civ':grequire()
 local sub = string.sub
 
-local CMAX = 999
+local CMAX = 999; M.CMAX = CMAX
 local Gap = struct('Gap', {
   {'bot', List}, {'top', List},
 })
@@ -136,7 +136,6 @@ method(Gap, 'sub', function(g, ...)
   local s = List{}
   for i=l, min(l2,   #g.bot)        do s:add(g.bot[i]) end
   for i=1, min((l2-l+1)-#s, #g.top) do s:add(g.top[#g.top - i + 1]) end
-  pnt('sub lines', l, l2, l2-l, s)
   if nil == c then -- skip, only lines
   else
     s[1] = sub(s[1], c, CMAX)

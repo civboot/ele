@@ -44,18 +44,14 @@ local function mockedModel(h, w, s, inputs)
     mockInputs(inputs or ''):iterV())
   local e = Edit.new(mdl, Buffer.new(s), h, w)
   mdl.view, mdl.edit = e, e
-  mdl.status = function(t, ...)
-    if ty(t) == Tbl then print(concat(t))
-    else print(t, ...) end
-  end
-  mdl:draw()
+  mdl:init()
   return mdl
 end
 
 local function testModel(h, w)
   local mdl, status, eTest = model.testModel(
     term.FakeTerm(h, w), mockInputs(''):iterV())
-  mdl:draw()
+  mdl:init()
   return mdl, status, eTest
 end
 
@@ -229,4 +225,43 @@ test('withStatus', nil, function()
   assertEq(STATUS_1, tostring(t))
   stepKeys(m, 'i h i space')
   assertEq(STATUS_2, tostring(t))
+end)
+
+test('moveWord', nil, function()
+  local m = mockedModel(
+    1, 7, -- h, w
+    ' bc+12 -de \n  z(45+ 7)')
+  local e = m.edit; e.l, e.c = 1, 1
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 2)  -- 'bc'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 4)  -- '+'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 5)  -- '12'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 8)  -- '-'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 9)  -- 'de'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 12) -- EOL
+
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 9)  -- 'de'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 8)  -- '-'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 5)  -- '12'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 4)  -- '+'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 2)  -- 'bc'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 1)  -- SOL
+end)
+
+MODLINE_0 = '12345\n8909876'
+MODLINE_1 = '1234567\n8909876'
+MODLINE_2 = '123abc\n8909876'
+test('modLine', nil, function()
+  local m = mockedModel(2, 8, MODLINE_0)
+  local e, t = m.edit, m.term
+  e.l, e.c = 1, 1
+  stepKeys(m, 'A 6 7 ^J'); assertEq(1, e.l); assertEq(8, e.c)
+    assertEq(MODLINE_1, tostring(t))
+  stepKeys(m, 'h h D'); assertEq(1, e.l); assertEq(6, e.c)
+    assertEq(MODLINE_0, tostring(t))
+  stepKeys(m, 'h h C'); assertEq(1, e.l); assertEq(4, e.c)
+    assertEq('insert', m.mode)
+  stepKeys(m, 'a b c ^J'); assertEq(1, e.l); assertEq(7, e.c)
+    assertEq(MODLINE_2, tostring(t))
+  stepKeys(m, '0'); assertEq(1, e.l); assertEq(1, e.c)
+  stepKeys(m, '$'); assertEq(1, e.l); assertEq(7, e.c)
 end)

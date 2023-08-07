@@ -25,11 +25,9 @@ local Actions = action.Actions
 
 method(Model, '__tostring', function() return 'APP' end)
 method(Model, 'new', function(term_, inputCo)
-  local h, w = term_:size()
-  local sts = Buffer.new()
   local mdl = {
     mode='command',
-    h=h, w=w,
+    h=-1, w=-1,
     buffers=List{}, bufferI=1,
     start=Epoch(0), lastDraw=Epoch(0),
     bindings=Bindings.default(),
@@ -37,19 +35,24 @@ method(Model, 'new', function(term_, inputCo)
 
     inputCo=inputCo, term=term_,
     events=LL(),
-    statusBuf=sts,
   }
-  mdl.view = Edit.new(mdl, sts)
-  mdl.edit = mdl.view
+  mdl.statusEdit = Edit.new(mdl, Buffer.new())
+  mdl.view, mdl.edit = mdl.statusEdit, mdl.statusEdit
   return setmetatable(mdl, Model)
+end)
+-- Call after term is setup
+method(Model, 'init', function(m)
+  m.h, m.w = m.term:size()
+  m:draw()
 end)
 
 -- #####################
 -- # Utility methods
 method(Model, 'status', function(self, msg)
   if type(msg) ~= 'string' then msg = concat(msg) end
-  self.statusBuf.gap:append(msg)
-  pnt('Status: ', msg, self.edit.id)
+  local e = self.statusEdit
+  e.buf.gap:append(msg); e.l, e.c = e:len(), 1
+  pnt('Status: ', msg)
 end)
 method(Model, 'spent', function(self)
   return shix.epoch() - self.start
@@ -71,7 +74,6 @@ end)
 --   * draw
 method(Model, 'draw', function(mdl)
   mdl.h, mdl.w = mdl.term:size()
-  pnt('mdl h,w', mdl.h, mdl.w)
   update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
   mdl.view:draw(mdl.term, true)
   mdl.edit:drawCursor(mdl.term)
@@ -103,7 +105,6 @@ method(Model, 'defaultAction', function(self, keys)
 end)
 
 method(Model, 'update', function(self)
-  pnt('update loop')
   while not self.events:isEmpty() do
     local ev = self.events:popBack(); assert((ev.depth or 1) <= 12)
     pnt('Event', ev)
@@ -116,7 +117,6 @@ method(Model, 'update', function(self)
       self.events:addBack(e)
     end
   end
-  pnt('update end')
 end)
 -- the main loop
 
@@ -125,13 +125,11 @@ end)
 method(Model, 'step', function(self)
   local key = self.inputCo()
   self.start = shix.epoch()
-  pnt('got key', key)
   if key == '^C' then
     pnt('\nctl+C received, ending\n')
     return false
   end
   if key then self.events:addFront({'rawKey', key=key}) end
-  pnt('calling update')
   self:update()
   if self.mode == 'quit' then return false end
   self:draw()
@@ -139,13 +137,15 @@ method(Model, 'step', function(self)
 end)
 
 method(Model, 'app', function(self)
-  print('\nEntering raw mode')
+  pnt('starting app')
   self.term:start()
+  self.term:clear()
+  self:init()
   while true do
     if not self:step() then break end
   end
   self.term:stop()
-  print('\nExited app')
+  pnt('\nExited app')
 end)
 
 -- #####################
@@ -168,6 +168,8 @@ bindings.BINDINGS:updateCommand{
   i       = A.insert,
   h=A.left, j=A.down, k=A.up, l=A.right,
   w=A.forword, b=A.backword,
+  ['0']=A.SoL, ['$']=A.EoL,
+  A=A.appendLine, C=A.changeLine, D=A.deleteLine,
 }
 
 -- #####################
@@ -183,8 +185,9 @@ M.testModel = function(t, inp)
 end
 
 local function main()
-  print"## Running (ctl+q to quit)"
-  local mdl = M.testModel(term.UnixTerm, term.unix.input())
+  local inp = term.unix.input()
+  pnt"## Running ('q q' to quit)"
+  local mdl = M.testModel(term.UnixTerm, inp)
   mdl:app()
 end
 

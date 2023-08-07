@@ -23,7 +23,6 @@ local SPLIT_KINDS = Set{'h', 'v'}
 -- split the edit horizontally, return the new copied edit
 -- (which will be on the top/left)
 M.splitEdit = function(edit, kind)
-  pnt('splitEdit ', ty(edit), kind)
   assert(SPLIT_KINDS[kind]);
   assert(Edit == ty(edit))
   local container = edit.container
@@ -38,14 +37,12 @@ end
 
 -- Replace the edit object with a new one
 M.replaceEdit = function(edit, new)
-  pnt('replaceEdit', new)
   local container = edit.container
   if ty(container) == Model then container.edit = new
   else container[indexOf(container, edit)] = new
   end
   new.container = container; edit.container = nil;
   edit.close()
-  pnt('replaceEdit return', new)
   return new
 end
 
