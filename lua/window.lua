@@ -35,15 +35,31 @@ M.splitEdit = function(edit, kind)
   return new
 end
 
--- Replace the edit object with a new one
-M.replaceEdit = function(edit, new)
-  local container = edit.container
-  if ty(container) == Model then container.edit = new
-  else container[indexOf(container, edit)] = new
+-- Replace the view (Edit, Window) object with a new one
+M.replaceView = function(mdl, view, new)
+  local container = view.container
+  if ty(container) == Model then
+    container.view = view
+  else container[indexOf(container, view)] = new
   end
-  new.container = container; edit.container = nil;
-  edit.close()
+  if mdl.edit == view then
+    assert(ty(new) == Edit)
+    mdl.edit = new
+  end
+  new.container = container; view.container = nil;
+  view:close()
   return new
+end
+
+-- TODO: should just be windowAdd and you can specify the split type and
+-- bot+top
+M.windowAddBottom = function(view, add)
+  if ty(view) == Model then assert(false) end
+  if (ty(view) ~= Window) or w.splitkind == 'v' then
+    view = M.wrapWindow(view)
+  end
+  if not view.splitkind then view.splitkind = 'h' end
+  table.insert(view, add)
 end
 
 

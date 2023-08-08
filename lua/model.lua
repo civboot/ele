@@ -37,9 +37,7 @@ method(Model, 'new', function(term_, inputCo)
     inputCo=inputCo, term=term_,
     events=LL(),
   }
-  local se = Edit.new(mdl, Buffer.new())
-  se.fh = 1
-  mdl.statusEdit, mdl.view, mdl.edit = se, se, se
+  mdl.statusEdit = Edit.new(nil, Buffer.new())
   return setmetatable(mdl, Model)
 end)
 -- Call after term is setup
@@ -50,6 +48,12 @@ end)
 
 -- #####################
 -- # Utility methods
+method(Model, 'showStatus', function(self)
+  local s = self.statusEdit
+  if s.container then return end
+  window.windowAddBottom(self.view, s)
+  s.fh, s.fw = 1, nil
+end)
 method(Model, 'status', function(self, msg, kind)
   if type(msg) ~= 'string' then msg = concat(msg) end
   kind = kind and string.format('[%s] ', kind) or '[status] '
@@ -205,11 +209,9 @@ end
 
 M.testModel = function(t, inp)
   local mdl = Model.new(t, inp)
-  local status = mdl.edit
-  local eTest = window.splitEdit(mdl.edit, 'h')
-  eTest = window.replaceEdit(eTest, Edit.new(mdl, Buffer.new(data.TEST_MSG)))
-  mdl.edit = eTest
-  return mdl, status, eTest
+  mdl.edit = Edit.new(mdl, Buffer.new(data.TEST_MSG))
+  mdl.view = mdl.edit; mdl:showStatus()
+  return mdl, mdl.statusEdit, mdl.edit
 end
 
 local function main()
