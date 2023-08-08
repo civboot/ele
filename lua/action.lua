@@ -258,9 +258,9 @@ Action{ name='EoL', brief='end of line',
 Action{ name='times',
   brief='do an action multiple times (set with 1-9)',
   fn = function(mdl, ev)
-    return {'chain',
+    return List{{'chain',
       times=((ev.times or 0) * 10) + tonumber(ev.key)
-    }
+    }}
   end
 }
 
@@ -283,7 +283,6 @@ Action{ name='deleteDone', brief='delete to movement',
          e.l, ev.l, e.c, motion.decDistance(e.c, ev.c))
      else e.buf.gap:remove(e.l, ev.l)
      end
-
     end
   end
 }

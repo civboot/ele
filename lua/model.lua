@@ -16,6 +16,7 @@ local data = require'data'
 local window = require'window'
 
 local yld = coroutine.yield
+local byte, char = string.byte, string.char
 
 local M = {} -- module
 
@@ -192,6 +193,9 @@ bindings.BINDINGS:updateCommand{
   -- movement chains
   d=A.delete,
 }
+for b=byte('1'),byte('9') do
+  bindings.BINDINGS.command[char(b)] = A.times
+end
 
 -- #####################
 -- # Main

@@ -275,10 +275,8 @@ test('deleteChain', nil, function()
   local e, t = m.edit, m.term; e.l, e.c = 1, 1
   stepKeys(m, 'd w'); assertEq(1, e.l); assertEq(1, e.c)
     assertEq(DEL_CHAIN_1, tostring(t))
-  stepKeys(m, 'd w'); assertEq(1, e.l); assertEq(1, e.c)
-    assertEq(DEL_CHAIN_2, tostring(t))
-  stepKeys(m, 'd w'); assertEq(1, e.l); assertEq(1, e.c)
-    assertEq('', tostring(t))
+  stepKeys(m, '2 d w'); assertEq(1, e.l); assertEq(1, e.c)
+     assertEq('', tostring(t))
 end)
 
 
