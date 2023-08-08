@@ -175,14 +175,14 @@ local A = action.Actions
 -- -- Insert Mode
 bindings.BINDINGS:updateInsert{
   ['^Q ^Q'] = A.quit,
-  ['^J']    = A.command,
-  ['esc']   = A.command,
+  ['^J']    = A.command, ['esc']   = A.command,
   ['back']  = A.back,
 }
 
 -- Command Mode
 bindings.BINDINGS:updateCommand{
-  ['q q'] = A.quit, ['^Q ^Q'] = A.quit,
+  ['^Q ^Q'] = A.quit,  ['q q'] = A.quit,
+  ['^J']  = A.command, ['esc'] = A.command,
   i       = A.insert,
   -- direct modification
   A=A.appendLine, C=A.changeLine, D=A.deleteLine,

@@ -16,20 +16,37 @@ constructor(Action, function(ty_, act)
   return M.Actions[name]
 end)
 
-local function chainSub(mdl, chain, ev, options)
-  if (ev.depth or 1) <= chain.depth then
-    mdl.chain = nil
-    return List{ev}
-  end
-  if ev[1] ~= 'chain' then
-    return mdl:actRaw(ev)
-  end
+-- Handle a sub-chain event. This mostly involves storing
+-- a sub if we don't have one or cleaning ourselves up
+-- if there are multiple (accidental) chains.
+local function chainSub(chain, mdl, ev, options)
+  local out
+  if ev[1] == 'chain' then
+    out = List{}
+    if self.sub then
+      mdl:status("warn: double chain sub, clearing sub")
+      mdl.chain = ev
+    else
+      if options.times and not ev.times then
+        ev.times = options.times
+      end
+      chain.sub = ev
+    end
+  elseif chain.sub then out = chain.sub:fn(mdl, ev)
+  else                  out = mdl:actRaw(ev) end
+  return out
 end
 
 M.move = function(mdl, ev)
   local e = mdl.edit; e.l, e.c = ev.l, ev.c
 end
-M.insert = function(mdl) mdl.mode = 'insert'; mdl.chord = nil end
+local function clearState(mdl)
+  mdl.chord = nil
+  mdl.chain = nil
+end
+M.insert = function(mdl)
+  mdl.mode = 'insert'; clearState(mdl)
+end
 M.deleteLine = function(mdl)
   local e = mdl.edit; e.buf.gap:remove(e.l, e.c, e.l, gap.CMAX)
 end
@@ -57,7 +74,7 @@ Action{
     pnt('raw 1', ty(action))
     if not action then
       mdl.chord, mdl.chordKeys = nil, List{}
-      return List{{'insertKeys', keys=chordKeys}}
+      return List{{'unboundKeys', keys=chordKeys}}
     elseif Action == ty(action) then -- found, continue
       pnt('raw 2')
       mdl.chord, mdl.chordKeys = nil, List{}
@@ -69,24 +86,30 @@ Action{
   end,
 }
 
+local function unboundCommand(mdl, keys)
+  mdl:unrecognized(keys)
+end
+local function unboundInsert(mdl, keys)
+  if not mdl.edit then return mdl:status(
+    'Open a buffer to insert'
+  )end
+  for _, k in ipairs(keys) do
+    if not term.isInsertKey(k) then
+      mdl:unrecognized(k)
+    else
+      mdl.edit:insert(term.KEY_INSERT[k] or k)
+    end
+  end
+end
+
 Action{
-  name='insertKeys', brief='handle unbound key (in insert mode)',
+  name='unboundKeys', brief='handle unbound key',
   fn = function(mdl, event)
     local keys = assert(event.keys)
     if mdl.mode == 'command' then
-      mdl:unrecognized(keys)
+      unboundCommand(mdl, event.keys)
     elseif mdl.mode == 'insert' then
-      if not mdl.edit then return mdl:status(
-        'Open a buffer to insert'
-      )end
-
-      for _, k in ipairs(keys) do
-        if not term.isInsertKey(k) then
-          mdl:unrecognized(k)
-        else
-          mdl.edit:insert(term.KEY_INSERT[k] or k)
-        end
-      end
+      unboundInsert(mdl, event.keys)
     end
   end,
 }
@@ -102,8 +125,7 @@ Action{
 -- Command Mode
 Action{ name='command', brief='go to command mode',
   fn = function(mdl)
-    mdl.mode = 'command'
-    mdl.chord = nil
+    mdl.mode = 'command'; clearState(mdl)
   end,
 }
 Action{ name='quit', brief='quit the application',
@@ -178,7 +200,21 @@ Action{ name='EoL', brief='end of line', fn = function(mdl)
 end}
 
 ----------------
--- Movement Chains
+-- Chains
+local function timesChain(self, mdl, ev)
+  if ev[1] == 'rawKey' and '0' <= ev.key and ev.key <= '9' then
+    self.times = (self.times * 10) + tonumber(ev.key)
+  else
+    ev.times, mdl.chain = max(1, self.times), nil
+    return List{ev}
+  end
+end
+Action{ name='times', brief='set mdl.times (do an action multiple times)',
+  fn = function(mdl, _ev)
+    local ev = {'chain', 'times', times=_ev.times or 0, sub=false, fn=timesChain}
+    return List{ev}
+  end
+}
 
 ----
 -- Delete Chain
@@ -192,22 +228,13 @@ local function deleteChain(self, mdl, ev)
       e.buf.gap:remove(e.l, ev.l, e.c, motion.decDistance(e.c, ev.c))
     else e.buf.gap:remove(e.l, ev.l)
     end
-  elseif act == 'chain' then
-    if not self.sub then
-      if not ev.value then ev.value = self.value end
-      self.sub = ev; out = List{}
-    else mdl.chain = ev; out = List{}
-    end
-  elseif self.sub then
-    out = self.sub:fn(mdl, ev)
-  else out = mdl:actRaw(ev) end
+  else out = chainSub(self, mdl, ev, {times=self.times}) end
   return out
 end
 Action{ name='delete', brief='delete chain (use movement)',
-  fn = function(mdl, _ev, value)
-    local ev = {'chain', 'delete', value=value or 1, sub=false, fn=deleteChain}
-    if mdl.chain then return mdl.chain:fn(mdl, ev)
-    else return List{ev} end
+  fn = function(mdl, _ev)
+    local ev = {'chain', 'delete', times=_ev.times or 1, sub=false, fn=deleteChain}
+    return List{ev}
   end
 }
 
