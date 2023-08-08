@@ -146,6 +146,28 @@ Action{ name='changeEoL', brief='change to EoL', fn = function(mdl)
   M.deleteEoL(mdl); M.insert(mdl)
 end}
 Action{ name='deleteEoL', brief='delete to EoL', fn = M.deleteEoL }
+Action{ name='newline', brief='change a new line', fn = function(mdl, ev)
+  local e = mdl.edit
+  doTimes(ev, function() e:insert('\n') end)
+  M.insert(mdl)
+end}
+local bol = Action{ name='BoL', brief='goto beginning of line',
+  fn = function(mdl, ev)
+    local e = mdl.edit
+    e.c = e:curLine():find('%S') or #e:curLine()
+  end
+}
+Action{ name='changeBoL', brief='change at beginning of line',
+  fn = function(mdl, ev)
+    bol.fn(mdl, ev); M.insert(mdl)
+  end
+}
+Action{ name='del1', brief='delete single character',
+  fn = function(mdl, ev) doTimes(ev, function()
+      mdl.edit:removeOff(1)
+    end)
+  end
+}
 
 ----------------
 -- Movement: these can be used by commands that expect a movement

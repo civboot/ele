@@ -260,6 +260,8 @@ end)
 MODLINE_0 = '12345\n8909876'
 MODLINE_1 = '1234567\n8909876'
 MODLINE_2 = '123abc\n8909876'
+MODLINE_3 = '123abc\nhi'
+MODLINE_4 = '3abc\nhi'
 test('modLine', nil, function()
   local m = mockedModel(2, 8, MODLINE_0)
   local e, t = m.edit, m.term
@@ -274,6 +276,10 @@ test('modLine', nil, function()
     assertEq(MODLINE_2, tostring(t))
   stepKeys(m, '0'); assertEq(1, e.l); assertEq(1, e.c)
   stepKeys(m, '$'); assertEq(1, e.l); assertEq(7, e.c)
+  stepKeys(m, 'o h i ^J'); assertEq(2, e.l); assertEq(3, e.c)
+    assertEq(MODLINE_3, tostring(t))
+  stepKeys(m, 'k 0 x x'); assertEq(1, e.l); assertEq(1, e.c)
+    assertEq(MODLINE_4, tostring(t))
 end)
 
 ------------

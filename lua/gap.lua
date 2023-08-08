@@ -73,6 +73,10 @@ method(Gap, 'offset', function(g, off, l, c)
       off, l, c = off + 1, l - 1, CMAX
     end
   end
+  if CMAX == c then
+    c = g:get(l)
+    c = c and #c or 1
+  end
   return l, (CMAX == c and #(g:get(l))) or c
 end)
 

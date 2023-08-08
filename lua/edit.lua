@@ -79,7 +79,8 @@ end)
 method(Edit, 'removeOff', function(e, off, l, c)
   if off == 0 then return end
   l, c = l or e.l, c or e.c; local gap = e.buf.gap
-  if l < e.l or (l == e.l and c <= e.c) then
+  if l < e.l or (l == e.l and c < e.c) then
+    pnt('removeOff', off, e.l, e.c)
     e.l, e.c = gap:offset(off, e.l, e.c)
   end
   local l2, c2 = gap:offset(decAbs(off), l, c)

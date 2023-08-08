@@ -202,8 +202,12 @@ bindings.BINDINGS:updateCommand{
   ['^Q ^Q'] = A.quit,  ['q q'] = A.quit,
   ['^J']  = A.command, ['esc'] = A.command,
   i       = A.insert,
+
   -- direct modification
   A=A.appendLine, C=A.changeEoL, D=A.deleteEoL,
+  o=A.newline,    I=A.changeBoL,
+  x=A.del1,
+
   -- movement
   h=A.left, j=A.down, k=A.up, l=A.right,
   w=A.forword, b=A.backword,
