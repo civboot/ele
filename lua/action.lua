@@ -230,17 +230,33 @@ Action{ name='down', brief='move cursor down',
 Action{ name='forword', brief='find the start of the next word',
   fn = function(mdl, ev) return doMovement(mdl, ev,
     function(mdl, ev)
-      local e = mdl.edit;
-      local c = motion.forword(e:curLine(), e.c) or (#e:curLine() + 1)
-      return e.l, c
+      local e = mdl.edit; local l, c, len = e.l, e.c, e:len()
+      while l <= len do
+        c = motion.forword(e.buf.gap:get(l), c)
+        if c then return l, c end
+        l = l + 1; if l > len then break end
+        c = 1
+      end
+      return len, #e:lastLine() + 1
     end
+    -- function(mdl, ev)
+    --   local e = mdl.edit;
+    --   local c = motion.forword(e:curLine(), e.c) or (#e:curLine() + 1)
+    --   return e.l, c
+    -- end
   )end,
 }
 Action{ name='backword', brief='find the start of this (or previous) word',
   fn = function(mdl, ev) return doMovement(mdl, ev,
     function(mdl, ev)
-      local e = mdl.edit;
-      return e.l, motion.backword(e:curLine(), e.c) or 1
+      local e = mdl.edit; local l, c = e.l, e.c
+      while l > 0 do
+        c = motion.backword(e.buf.gap:get(l), c)
+        if c then return l, c end
+        l = l - 1; if l <= 0 then break end
+        c = #e.buf.gap:get(l) + 1
+      end
+      return 1, 1
     end
   )end,
 }
@@ -255,6 +271,19 @@ Action{ name='EoL', brief='end of line',
   fn = function(mdl, ev) return doMovement(mdl, ev,
     function(mdl, ev)
       return mdl.edit.l, mdl.edit:colEnd()
+    end
+  )end,
+}
+Action{ name='goTop', brief='go to top of buf',
+  fn = function(mdl, ev) doMovement(mdl, ev,
+    function(mdl, ev) return 1, 1 end
+  )end,
+}
+Action{ name='goBot', brief='go to bottom of buf',
+  fn = function(mdl, ev) doMovement(mdl, ev,
+    function(mdl, ev)
+      local e = mdl.edit
+      return e:len(), #e:lastLine() + 1
     end
   )end,
 }

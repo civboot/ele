@@ -139,12 +139,6 @@ local function splitSetup(m, kind)
   return w, eL, eR
 end
 
-local SPLIT_CANVAS_H = [[
-1234567
-123
--------
-1234567
-123]]
 test('splitH', nil, function()
   local m = mockedModel(
     5, 7, -- h, w
@@ -153,12 +147,14 @@ test('splitH', nil, function()
   assertEq(7, w.tw)
   assertEq(7, eR.tw); assertEq(7, eL.tw)
   assertEq(2, eR.th); assertEq(2, eL.th)
-  assertEq(SPLIT_CANVAS_H, tostring(m.term))
+  assertEq([[
+1234567
+123
+-------
+1234567
+123]], tostring(m.term))
 end)
 
-local SPLIT_CANVAS_V = [[
-1234567  |1234567
-123      |123]]
 test('splitV', nil, function()
   local m = mockedModel(
     2, 20, -- h, w
@@ -167,56 +163,35 @@ test('splitV', nil, function()
   assertEq(20, w.tw)
   assertEq(10, eR.tw)
   assertEq(9,  eL.tw)
-  assertEq(SPLIT_CANVAS_V, tostring(m.term))
+  assertEq([[
+1234567  |1234567
+123      |123]], tostring(m.term))
 end)
 
 
-local SPLIT_EDIT_1 = [[
-abc1234
-123
--------
-abc1234
-123]]
-local SPLIT_EDIT_2 = [[
-abc1234
-1234
--------
-1234
-bottom]]
 test('splitEdit', nil, function()
   local m = mockedModel(
     5, 7, -- h, w
     '1234567\n123')
   local w, eT, eB = splitSetup(m, 'h')
   stepKeys(m, 'i a b c')
-    assertEq(SPLIT_EDIT_1, tostring(m.term))
+  assertEq([[
+abc1234
+123
+-------
+abc1234
+123]], tostring(m.term))
   -- go down twice (to EOF) then insert stuff
   stepKeys(m, '^J j j i 4 return b o t t o m')
-    assertEq(SPLIT_EDIT_2, tostring(m.term))
+  assertEq([[
+abc1234
+1234
+-------
+1234
+bottom]], tostring(m.term))
     assertEq(3, eB.l); assertEq(7, eB.c)
 end)
 
-local STATUS_0=[[
-*123456789*12345
-1 This is to man
-2               
-3               
-4     It's nice 
-5               
-6               
-----------------
-]]
-
-local STATUS_1 = [[
-hi *123456789*12
-1 This is to man
-2               
-3               
-4     It's nice 
-5               
-6               
-----------------
-[unset] chord: ~]]
 
 test('withStatus', nil, function()
   local h, w = 9, 16
@@ -230,9 +205,28 @@ test('withStatus', nil, function()
   assertEq(1, m.view:forceDim('forceHeight', false))
   assertEq(7, m.view:period(9, 'forceHeight', 1))
 
-  assertEq(STATUS_0, tostring(t))
+  assertEq([[
+*123456789*12345
+1 This is to man
+2               
+3               
+4     It's nice 
+5               
+6               
+----------------
+]], tostring(t))
+
   stepKeys(m, 'i h i space ^J ~') -- type a bit, trigger status
-  assertEq(STATUS_1, tostring(t))
+  assertEq([[
+hi *123456789*12
+1 This is to man
+2               
+3               
+4     It's nice 
+5               
+6               
+----------------
+[unset] chord: ~]], tostring(t))
 end)
 
 test('moveWord', nil, function()
@@ -240,63 +234,57 @@ test('moveWord', nil, function()
     1, 7, -- h, w
     ' bc+12 -de \n  z(45+ 7)')
   local e = m.edit; e.l, e.c = 1, 1
-  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 2)  -- 'bc'
-  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 4)  -- '+'
-  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 5)  -- '12'
-  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 8)  -- '-'
-  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 9)  -- 'de'
-  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 12) -- EOL
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 2) -- 'bc'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 4) -- '+'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 5) -- '12'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 8) -- '-'
+  stepKeys(m, 'w'); assertEq(1, e.l); assertEq(e.c, 9) -- 'de'
+  stepKeys(m, 'w'); assertEq(2, e.l); assertEq(e.c, 3) -- 'z' (next line)
 
-  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 9)  -- 'de'
-  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 8)  -- '-'
-  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 5)  -- '12'
-  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 4)  -- '+'
-  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 2)  -- 'bc'
-  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 1)  -- SOL
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 9) -- 'de'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 8) -- '-'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 5) -- '12'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 4) -- '+'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 2) -- 'bc'
+  stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 1) -- SOL
+  stepKeys(m, 'j b'); assertEq(1, e.l); assertEq(e.c, 9)  -- 'de'
 end)
 
 ------------
 -- Test D C modline
 MODLINE_0 = '12345\n8909876'
-MODLINE_1 = '1234567\n8909876'
-MODLINE_2 = '123abc\n8909876'
-MODLINE_3 = '123abc\nhi'
-MODLINE_4 = '3abc\nhi'
 test('modLine', nil, function()
   local m = mockedModel(2, 8, MODLINE_0)
   local e, t = m.edit, m.term
   e.l, e.c = 1, 1
   stepKeys(m, 'A 6 7 ^J'); assertEq(1, e.l); assertEq(8, e.c)
-    assertEq(MODLINE_1, tostring(t))
+  assertEq('1234567\n8909876', tostring(t))
   stepKeys(m, 'h h D'); assertEq(1, e.l); assertEq(6, e.c)
     assertEq(MODLINE_0, tostring(t))
   stepKeys(m, 'h h C'); assertEq(1, e.l); assertEq(4, e.c)
     assertEq('insert', m.mode)
   stepKeys(m, 'a b c ^J'); assertEq(1, e.l); assertEq(7, e.c)
-    assertEq(MODLINE_2, tostring(t))
+    assertEq('123abc\n8909876', tostring(t))
   stepKeys(m, '0'); assertEq(1, e.l); assertEq(1, e.c)
   stepKeys(m, '$'); assertEq(1, e.l); assertEq(7, e.c)
   stepKeys(m, 'o h i ^J'); assertEq(2, e.l); assertEq(3, e.c)
-    assertEq(MODLINE_3, tostring(t))
+    assertEq('123abc\nhi', tostring(t))
   stepKeys(m, 'k 0 x x'); assertEq(1, e.l); assertEq(1, e.c)
-    assertEq(MODLINE_4, tostring(t))
+    assertEq('3abc\nhi', tostring(t))
 end)
 
 ------------
 -- Test d delete
-DEL_CHAIN_0 = '12 34 567'
-DEL_CHAIN_1 = '34 567'
-DEL_CHAIN_2 = '567'
-DEL_CHAIN_3 = '12 34+56\n78+9'
+DEL = '12 34+56\n78+9'
 test('deleteChain', nil, function()
-  local m = mockedModel(1, 8, DEL_CHAIN_0)
+  local m = mockedModel(1, 8, '12 34 567')
   local e, t = m.edit, m.term; e.l, e.c = 1, 1
   stepKeys(m, 'd w'); assertEq(1, e.l); assertEq(1, e.c)
-    assertEq(DEL_CHAIN_1, tostring(t))
+    assertEq('34 567', tostring(t))
   stepKeys(m, '2 d w'); assertEq(1, e.l); assertEq(1, e.c)
      assertEq('', tostring(t))
-  e.buf.gap:insert(DEL_CHAIN_3, 1, 1)
-  t:init(2, 8); m:draw(); assertEq(DEL_CHAIN_3, tostring(t))
+  e.buf.gap:insert(DEL, 1, 1)
+  t:init(2, 8); m:draw(); assertEq(DEL, tostring(t))
   stepKeys(m, 'l j d d');
      assertEq(1, e.l); assertEq(2, e.c)
      assertEq('12 34+56\n', tostring(t))
@@ -309,47 +297,38 @@ test('deleteChain', nil, function()
   stepKeys(m, 'd F 2');
     assertEq(1, e.l); assertEq(2, e.c)
     assertEq('156\n', tostring(t))
+  stepKeys(m, 'g g d G')
+    assertEq(1, e.l); assertEq(1, e.c)
+    assertEq('\n', tostring(t))
 end)
 
 ------------
 -- Test /search
 SEARCH_0 = '12345\n12345678\nabcdefg'
-SEARCH_1 = [[
-12345
----------
-34]]
-SEARCH_2 = [[
-12345
----------
-234]]
-SEARCH_3 = [[
-12345678
----------
-]]
-SEARCH_4 = [[
-12345678
----------
-123 |]]
-SEARCH_5 = [[
-12345678
----------
-[find] no]]
-
 test('modLine', nil, function()
   local m = mockedModel(3, 9, SEARCH_0)
   local e, t, s, sch = m.edit, m.term, m.statusEdit, m.searchEdit
   e.l, e.c = 1, 1
   stepKeys(m, '/ 3 4'); assertEq(1, e.l); assertEq(1, e.c)
-    assertEq(SEARCH_1, tostring(t))
+  assertEq([[
+12345
+---------
+34]], tostring(t))
   stepKeys(m, 'return'); assertEq(1, e.l); assertEq(3, e.c)
     assertEq(SEARCH_0, tostring(t))
   stepKeys(m, '/ 2 3 4'); assertEq(1, e.l); assertEq(3, e.c)
-    assertEq(SEARCH_2, tostring(t))
+  assertEq([[
+12345
+---------
+234]], tostring(t))
   stepKeys(m, 'return'); assertEq(2, e.l); assertEq(2, e.c)
     assertEq(SEARCH_0, tostring(t))
 
   m:showStatus(); m:draw()
-    assertEq(SEARCH_3, tostring(t))
+  assertEq([[
+12345678
+---------
+]], tostring(t))
 
   stepKeys(m, '/ 1 2 3')
   assertEq(m.view[1], e)
@@ -358,8 +337,15 @@ test('modLine', nil, function()
   assertEq(1, m.view[2]:forceHeight())
   assertEq({1, 4}, {s.th, s.tw})
   assertEq({2, 2, 1, 9}, {e.l, e.c, e.th, e.tw})
-     assertEq(SEARCH_4, tostring(t))
+  assertEq([[
+12345678
+---------
+123 |]], toString(t))
   stepKeys(m, 'return')
-     assertEq(SEARCH_5, tostring(t))
+assertEq([[
+12345678
+---------
+[find] no]], tostring(t))
+
   stepKeys(m, 'N'); assertEq(1, e.l); assertEq(1, e.c)
 end)
