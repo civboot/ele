@@ -69,7 +69,7 @@ M.Model = struct('Model', {
   {'h', Num}, {'w', Num}, -- window height/width
   'view', -- Edit or Cols or Rows
   'edit', -- The active editor
-  'statusEdit', -- default status edit/buffer view
+  'statusEdit', 'searchEdit',
   {'buffers', List}, {'bufferI', Num},
   {'start', Epoch}, {'lastDraw', Epoch},
   {'bindings', Bindings},

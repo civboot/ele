@@ -38,6 +38,7 @@ method(Model, 'new', function(term_, inputCo)
     events=LL(),
   }
   mdl.statusEdit = Edit.new(nil, Buffer.new())
+  mdl.searchEdit = Edit.new(nil, Buffer.new())
   return setmetatable(mdl, Model)
 end)
 -- Call after term is setup
@@ -51,16 +52,26 @@ end)
 method(Model, 'showStatus', function(self)
   local s = self.statusEdit
   if s.container then return end
-  window.windowAddBottom(self.view, s)
+  window.windowAdd(self.view, s, 'h', false)
   s.fh, s.fw = 1, nil
 end)
+method(Model, 'showSearch', function(self)
+  local s = self.searchEdit; if s.container then return end
+  if self.statusEdit.container then -- piggyback on status
+    window.windowAdd(self.statusEdit, s, 'v', true)
+  else -- create our own
+    window.windowAdd(self.view, s, 'h', false)
+    s.fh, s.fw = 1, nil
+  end
+  assert(s.container)
+end)
+
 method(Model, 'status', function(self, msg, kind)
   if type(msg) ~= 'string' then msg = concat(msg) end
   kind = kind and string.format('[%s] ', kind) or '[status] '
   msg = kind .. msg
   local e = self.statusEdit
-  assert(not msg:find('\n'))
-  e.buf.gap:append(msg); e.l, e.c = e:len(), 1
+  assert(not msg:find('\n')); e:append(msg)
   pnt('Status: ', msg)
 end)
 method(Model, 'spent', function(self)
@@ -104,7 +115,7 @@ method(Model, 'defaultAction', function(self, keys)
     )end
 
     for _, k in ipairs(keys) do
-      if not term.isInsertKey(k) then
+      if not term.insertKey(k) then
         self:unrecognized(k)
       else
         self.edit:insert(term.KEY_INSERT[k] or k)
@@ -130,7 +141,8 @@ end)
 
 method(Model, 'update', function(self)
   while not self.events:isEmpty() do
-    local ev = self.events:popBack(); assert((ev.depth or 1) <= 12)
+    local ev = self.events:popBack();
+    if (ev.depth or 1) > 12 then error('event depth: ' .. ev.depth) end
     pnt('Event: ', ev)
     local out = nil
     if self.chain then
@@ -196,6 +208,8 @@ bindings.BINDINGS:updateCommand{
   h=A.left, j=A.down, k=A.up, l=A.right,
   w=A.forword, b=A.backword,
   ['0']=A.SoL, ['$']=A.EoL,
+  ['/']=A.search, n=A.searchNext,
+  N=A.searchPrev, ['^N']=A.searchPrev,
 
   -- chains
   f=A.find, F=A.findBack, d=A.delete,

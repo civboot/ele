@@ -19,7 +19,7 @@ method(Bindings, '_update', function(b, mode, bindings, checker)
 end)
 method(Bindings, 'updateInsert', function(b, bindings)
   return b:_update('insert', bindings, function(k)
-    if term.isInsertKey(k) then error(
+    if term.insertKey(k) then error(
       'bound visible in insert mode: '..k
     )end
   end)

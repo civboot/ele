@@ -44,6 +44,7 @@ local function mockedModel(h, w, s, inputs)
     mockInputs(inputs or ''):iterV())
   local e = Edit.new(mdl, Buffer.new(s), h, w)
   mdl.view, mdl.edit = e, e
+  assertEq(mdl, e.container)
   mdl:init()
   return mdl
 end
@@ -128,14 +129,11 @@ end)
 
 local function splitSetup(m, kind)
   local eR = m.edit
-  assertEq(2, eR.id)
   local eL = window.splitEdit(m.edit, kind)
   local w = eL.container
   assert(rawequal(w, m.view))
   assert(rawequal(w, eR.container))
   assert(rawequal(eR.buf, eL.buf))
-  assertEq(3, w.id)
-  assertEq(4, eL.id)
   assertEq(eL, w[1]); assertEq(eR, w[2]);
   m:draw()
   return w, eL, eR
@@ -257,6 +255,8 @@ test('moveWord', nil, function()
   stepKeys(m, 'b'); assertEq(1, e.l); assertEq(e.c, 1)  -- SOL
 end)
 
+------------
+-- Test D C modline
 MODLINE_0 = '12345\n8909876'
 MODLINE_1 = '1234567\n8909876'
 MODLINE_2 = '123abc\n8909876'
@@ -276,6 +276,8 @@ test('modLine', nil, function()
   stepKeys(m, '$'); assertEq(1, e.l); assertEq(7, e.c)
 end)
 
+------------
+-- Test d delete
 DEL_CHAIN_0 = '12 34 567'
 DEL_CHAIN_1 = '34 567'
 DEL_CHAIN_2 = '567'
@@ -288,9 +290,7 @@ test('deleteChain', nil, function()
   stepKeys(m, '2 d w'); assertEq(1, e.l); assertEq(1, e.c)
      assertEq('', tostring(t))
   e.buf.gap:insert(DEL_CHAIN_3, 1, 1)
-  pnt('gap 1:', e.buf.gap)
   t:init(2, 8); m:draw(); assertEq(DEL_CHAIN_3, tostring(t))
-  pnt('gap 2:', e.buf.gap)
   stepKeys(m, 'l j d d');
      assertEq(1, e.l); assertEq(2, e.c)
      assertEq('12 34+56\n', tostring(t))
@@ -305,4 +305,55 @@ test('deleteChain', nil, function()
     assertEq('156\n', tostring(t))
 end)
 
+------------
+-- Test /search
+SEARCH_0 = '12345\n12345678\nabcdefg'
+SEARCH_1 = [[
+12345
+---------
+34]]
+SEARCH_2 = [[
+12345
+---------
+234]]
+SEARCH_3 = [[
+12345678
+---------
+]]
+SEARCH_4 = [[
+12345678
+---------
+123 |]]
+SEARCH_5 = [[
+12345678
+---------
+[find] no]]
 
+test('modLine', nil, function()
+  local m = mockedModel(3, 9, SEARCH_0)
+  local e, t, s, sch = m.edit, m.term, m.statusEdit, m.searchEdit
+  e.l, e.c = 1, 1
+  stepKeys(m, '/ 3 4'); assertEq(1, e.l); assertEq(1, e.c)
+    assertEq(SEARCH_1, tostring(t))
+  stepKeys(m, 'return'); assertEq(1, e.l); assertEq(3, e.c)
+    assertEq(SEARCH_0, tostring(t))
+  stepKeys(m, '/ 2 3 4'); assertEq(1, e.l); assertEq(3, e.c)
+    assertEq(SEARCH_2, tostring(t))
+  stepKeys(m, 'return'); assertEq(2, e.l); assertEq(2, e.c)
+    assertEq(SEARCH_0, tostring(t))
+
+  m:showStatus(); m:draw()
+    assertEq(SEARCH_3, tostring(t))
+
+  stepKeys(m, '/ 1 2 3')
+  assertEq(m.view[1], e)
+  assertEq(m.view[2][1], sch)
+  assertEq(m.view[2][2], s)
+  assertEq(1, m.view[2]:forceHeight())
+  assertEq({1, 4}, {s.th, s.tw})
+  assertEq({2, 2, 1, 9}, {e.l, e.c, e.th, e.tw})
+     assertEq(SEARCH_4, tostring(t))
+  stepKeys(m, 'return')
+     assertEq(SEARCH_5, tostring(t))
+  stepKeys(m, 'N'); assertEq(1, e.l); assertEq(1, e.c)
+end)

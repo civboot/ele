@@ -159,8 +159,8 @@ local CMD = { -- command characters (not sequences)
 }
 for _, k in pairs(CMD) do VALID_KEY[k] = true end
 
-M.isInsertKey = function(k)
-  return 1 == #k or M.KEY_INSERT[k]
+M.insertKey = function(k)
+  return (1 == #k and k) or M.KEY_INSERT[k]
 end
 
 local isdigitsc = function(c)

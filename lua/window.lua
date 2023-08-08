@@ -51,27 +51,44 @@ M.replaceView = function(mdl, view, new)
   return new
 end
 
--- TODO: should just be windowAdd and you can specify the split type and
--- bot+top
-M.windowAddBottom = function(view, add)
-  if ty(view) == Model then assert(false) end
-  if (ty(view) ~= Window) or w.splitkind == 'v' then
-    view = M.wrapWindow(view)
+M.viewRemove = function(view)
+  while true do
+    local c = view.container; if not c then return end
+    if ty(c) == Model then assert(false) end
+    table.remove(c, indexOf(c, view))
+    view.container = nil
+    if #c > 0 then
+      if #c == 1 then c.splitkind = nil end
+      return
+    end
+    view = c -- remove empty container
   end
-  if not view.splitkind then view.splitkind = 'h' end
-  table.insert(view, add)
 end
-
-
 
 -- wrap an edit/window in a new window
 M.wrapWindow = function(w)
-  local container = w.container
+  local container = assert(w.container)
   local wrapped = Window.new(container); wrapped[1] = w
   if ty(container) == Model then container.view = wrapped
   else container[indexOf(container, w)] = wrapped end
   w.container = wrapped
   return wrapped
+end
+
+-- Add the window to the view, wrapping it if needed
+-- split will be the type of split created
+-- leftTop: if true, add goes at left|top, else right|bot
+M.windowAdd = function(view, add, split, leftTop)
+  assert(not add.container)
+  if ty(view) == Model then assert(false) end
+  local other = (split == 'h' and 'v') or 'h'
+  if (ty(view) ~= Window) or view.splitkind == other then
+    view = M.wrapWindow(view)
+  end
+  if not view.splitkind then view.splitkind = split end
+  local i = (leftTop and 1) or (#view + 1)
+  table.insert(view, i, add)
+  add.container = view
 end
 
 ---------------------
@@ -120,6 +137,12 @@ local function drawSepV(term, l, c, h, sep)
   end
 end
 
+-- return the maximum forced dimension
+method(Window, 'forceDimMax', function(w, dimFn)
+  local fd = 0; for _, ch in ipairs(w) do
+    fd = max(fd, ch[dimFn](ch))
+  end; return fd
+end)
 -- return the forced dimension and the number of forceDim children
 -- sc: if true, return 0 at first non-forceWidth child
 method(Window, 'forceDim', function(w, dimFn, sc)
@@ -129,10 +152,12 @@ method(Window, 'forceDim', function(w, dimFn, sc)
     elseif sc then return 0, 0 end
   end; return fd, n
 end)
-method(Window, 'forceWidth',  function(w, dimFn)
+method(Window, 'forceWidth',  function(w)
+  if w.kind == 'h' then return w:forceDimMax('forceWidth') end
   return  w:forceDim('forceWidth', true)
 end)
 method(Window, 'forceHeight', function(w, dimFn)
+  if w.splitkind == 'v' then return w:forceDimMax('forceHeight') end
   return  w:forceDim('forceHeight', true)
 end)
 
@@ -149,7 +174,7 @@ method(Window, 'draw', function(w, term, isRight)
   if not w.splitkind then
     assert(#w == 1)
     updateKeys(w[1], w, {'tl', 'tc', 'th', 'tw'})
-    child:draw(term, isRight)
+    w[1]:draw(term, isRight)
   elseif 'v' == w.splitkind then -- verticle split
     assert(#w > 1)
     local tc, remain = w.tc, w.tw

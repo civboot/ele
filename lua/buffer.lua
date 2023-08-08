@@ -9,9 +9,8 @@ method(Buffer, 'new', function(s)
     changes=List{}, changeI=0,
   }
 end)
+method(Buffer, 'append', function(b, msg)
+  b.gap:append(msg)
+end)
 
-update(buffer, {
-  Change=Change,
-  Buffer=Buffer
-})
 return buffer

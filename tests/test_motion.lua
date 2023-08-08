@@ -28,3 +28,8 @@ test('backword', nil, function()
   assertEq(3,   backword('  bcd', 4))
   assertEq(nil, backword('  bcd', 3))
 end)
+
+test('findBack', nil, function()
+  assertEq({7, 8},   {findBack('12 45 12 ', '12')})
+  assertEq({1, 2},   {findBack('12 45 12 ', '12', 6)})
+end)

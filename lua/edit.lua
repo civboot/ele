@@ -39,6 +39,16 @@ method(Edit, 'len',     function(e) return e.buf.gap:len() end)
 method(Edit, 'boundCol',  function(e, c, l)
   return bound(c, 1, #e.buf.gap:get(l or e.l) + 1)
 end)
+method(Edit, 'append', function(e, msg)
+  e.buf.gap:append(msg); e.l, e.c = e:len(), 1
+end)
+method(Edit, 'trailWs', function(e, msg)
+  local g = e.buf.gap
+  while g:get(g:len() - 1)    ~= ''
+        or g:get(g:len() - 2) ~= '' do
+    e:append('')
+  end
+end)
 
 -- update view to see cursor (if needed)
 method(Edit, 'viewCursor', function(e)
@@ -75,9 +85,6 @@ method(Edit, 'removeOff', function(e, off, l, c)
   local l2, c2 = gap:offset(decAbs(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
   gap:remove(l, c, l2, c2)
-end)
-method(Edit, 'append', function(e, ...)
-  self.gap:append(...)
 end)
 
 -- draw to term (l, c, w, h)

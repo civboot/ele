@@ -3,6 +3,7 @@ grequire'types'
 local gap = require'gap'
 local term = require'term'
 local motion = require'motion'
+local window = require'window'
 
 local M = {}
 M.Actions = {}
@@ -25,6 +26,7 @@ end)
 -- and include it in the next rawKey event.
 local function chain(ev, name, add)
   ev.chain = ev.chain or List{}; ev.chain:add(ev[1])
+  ev.depth = nil
   ev[1] = name; if add then update(ev, add) end
   return List{ev}, true
 end
@@ -69,9 +71,7 @@ Action{
     local key = assert(ev.key)
     assert(type(key) == 'string', key)
     if ev.execRawKey then
-      ev.rawKey = true
-      assert(not M.Actions[ev.execRawKey].fn(mdl, ev))
-      return
+      return chain(ev, pop(ev, 'execRawKey'), {rawKey=true})
     end
 
     local action, chordKeys = mdl:getBinding(key), mdl.chordKeys
@@ -98,7 +98,7 @@ local function unboundInsert(mdl, keys)
     'open a buffer to insert', 'info'
   )end
   for _, k in ipairs(keys) do
-    if not term.isInsertKey(k) then
+    if not term.insertKey(k) then
       mdl:unrecognized(k); return nil, true
     else
       mdl.edit:insert(term.KEY_INSERT[k] or k)
@@ -318,4 +318,50 @@ Action{ name='deleteDone', brief='delete to movement',
     end
   end
 }
+
+----
+-- Search
+Action{ name='search', brief='search for pattern',
+  fn = function(mdl, ev)
+    local e = mdl.searchEdit;
+    if not ev.search then
+      mdl:showSearch()
+      e:trailWs()
+      return chain(ev, 'chain', {execRawKey='search', search=''})
+    end
+    local k = term.insertKey(ev.key)
+    local search = ev.search .. (k or ('<'..ev.key..'>'))
+    if ev.key == '^N' then return chain(ev, 'searchPrev')
+    elseif k == '\n'  then return chain(ev, 'searchNext')
+    elseif not k then
+      mdl:status('search='..search, 'stop'); window.viewRemove(e)
+    else -- append to search, keep searching
+      assert(#k == 1)
+      e.buf.gap:remove(e:len(), e:len())
+      e.buf.gap:append(search)
+      return chain(ev, 'chain', {execRawKey='search', search=search})
+    end
+  end
+}
+
+local function searchKind(gapSearch, inc)
+  return function(mdl, ev)
+    local out = doMovement(mdl, ev, function(mdl, ev)
+      local e, search = mdl.edit, mdl.searchEdit:lastLine()
+      local l, c = e.buf.gap[gapSearch](e.buf.gap, search, e.l, e.c + inc)
+      if l and c then return l, c
+      else mdl:status(string.format('not found: %q', search), 'find')
+      end
+    end)
+    window.viewRemove(mdl.searchEdit)
+    return out
+  end
+end
+Action{ name='searchNext', brief='search for pattern',
+  fn = searchKind('find', 1),
+}
+Action{ name='searchPrev', brief='search for previous pattern',
+  fn = searchKind('findBack', -1),
+}
+
 return M

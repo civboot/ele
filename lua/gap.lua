@@ -13,6 +13,7 @@ local M = {} -- module
 
 require'civ':grequire()
 local sub = string.sub
+local motion = require'motion'
 
 local CMAX = 999; M.CMAX = CMAX
 local Gap = struct('Gap', {
@@ -102,7 +103,6 @@ method(Gap, 'insert', function(g, s, l, c)
   g:extend(strinsert(cur, c or 0, s))
 end)
 
-
 -- remove from (l, c) -> (l2, c2), return what was removed
 method(Gap, 'remove', function(g, ...)
   local l, c, l2, c2 = lcs(...);
@@ -158,6 +158,28 @@ end)
 -- extend onto gap. Mostly used internally
 method(Gap, 'extend', function(g, s)
   for l in lines(s) do g.bot:add(l) end
+end)
+
+-- find the pattern starting at l/c
+method(Gap, 'find', function(g, pat, l, c)
+  c = c or 1
+  while true do
+    local s = g:get(l)
+    if not s then return nil end
+    c = s:find(pat, c); if c then return l, c end
+    l, c = l + 1, 1
+  end
+end)
+
+-- find the pattern (backwards) starting at l/c
+method(Gap, 'findBack', function(g, pat, l, c)
+  while true do
+    local s = g:get(l)
+    if not s then return nil end
+    c = motion.findBack(s, pat, c)
+    if c then return l, c end
+    l, c = l - 1, nil
+  end
 end)
 
 Gap.CMAX = CMAX
