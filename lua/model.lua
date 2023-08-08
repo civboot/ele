@@ -127,11 +127,10 @@ method(Model, 'update', function(self)
     pnt('Event: ', ev)
     local out = nil
     if self.chain then
-      out = self.chain:fn(self, ev); if not out then
-        self.chain = nil; out = List{}
-      end
-    else out = self:actRaw(ev)
+      update(self.chain, ev)
+      ev = self.chain; self.chain = nil
     end
+    out = self:actRaw(ev)
     if ty(out) ~= List then error('action returned non-list: '..tfmt(out)) end
     self:actionHandler(out, ev.depth)
   end
@@ -185,7 +184,7 @@ bindings.BINDINGS:updateCommand{
   ['^J']  = A.command, ['esc'] = A.command,
   i       = A.insert,
   -- direct modification
-  A=A.appendLine, C=A.changeLine, D=A.deleteLine,
+  A=A.appendLine, C=A.changeEoL, D=A.deleteEoL,
   -- movement
   h=A.left, j=A.down, k=A.up, l=A.right,
   w=A.forword, b=A.backword,

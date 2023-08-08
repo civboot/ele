@@ -16,6 +16,18 @@ constructor(Action, function(ty_, act)
   return M.Actions[name]
 end)
 
+-- Helpful for constructing "state chains"
+local function chain(ev, name, add)
+  ev.chain = ev.chain or List{}; ev.chain:add(ev[1])
+  ev[1] = name; if add then update(ev, add) end
+  return List{ev}
+end
+
+local function doTimes(ev, fn)
+  for _=1, ev.times or 1 do fn() end
+  return nil, true
+end
+
 -- Handle a sub-chain event. This mostly involves storing
 -- a sub if we don't have one or cleaning ourselves up
 -- if there are multiple (accidental) chains.
@@ -46,9 +58,11 @@ local function clearState(mdl)
 end
 M.insert = function(mdl)
   mdl.mode = 'insert'; clearState(mdl)
+  return nil, true
 end
-M.deleteLine = function(mdl)
+M.deleteEoL = function(mdl)
   local e = mdl.edit; e.buf.gap:remove(e.l, e.c, e.l, gap.CMAX)
+  return nil, true
 end
 
 ---------------------------------
@@ -64,23 +78,29 @@ Action{ name='move', brief='move cursor', fn = M.move, }
 Action{ name='insert', brief='go to insert mode', fn = M.insert, }
 Action{
   name='rawKey', brief='the raw key handler (directly handles all key events)',
-  fn = function(mdl, event)
+  fn = function(mdl, ev)
     pnt('raw 0')
-    local key = assert(event.key)
+    local key = assert(ev.key)
     assert(type(key) == 'string', key)
+    if ev.execRawKey then
+      ev.rawKey = true
+      assert(not M.Actions[ev.execRawKey].fn(mdl, ev))
+      return nil, true
+    end
 
     local action, chordKeys = mdl:getBinding(key), mdl.chordKeys
     chordKeys:add(key)
     pnt('raw 1', ty(action))
     if not action then
       mdl.chord, mdl.chordKeys = nil, List{}
-      return List{{'unboundKeys', keys=chordKeys}}
+      return chain(ev, 'unboundKeys', {keys=chordKeys})
     elseif Action == ty(action) then -- found, continue
       pnt('raw 2')
       mdl.chord, mdl.chordKeys = nil, List{}
-      return List{{action.name, keys=chordKeys}}
+      return chain(ev, action.name, {keys=chordKeys})
     elseif Map == ty(action) then
       mdl.chord = action
+      if ev.chain then mdl.chain = ev end
     else error(action) end
     pnt('raw end')
   end,
@@ -111,13 +131,16 @@ Action{
     elseif mdl.mode == 'insert' then
       unboundInsert(mdl, event.keys)
     end
+    return nil, true
   end,
 }
 Action{
   name='back', brief='delete previous character',
-  fn = function(mdl, event)
-    local l, c = mdl.edit:offset(-1)
-    mdl.edit:remove(-1, l, c)
+  fn = function(mdl, ev)
+    return doTimes(ev, function()
+      local l, c = mdl.edit:offset(-1)
+      mdl.edit:remove(-1, l, c)
+    end)
   end,
 }
 
@@ -135,106 +158,133 @@ Action{ name='quit', brief='quit the application',
 -- Direct Modification
 Action{ name='appendLine', brief='append to line', fn = function(mdl)
   mdl.edit.c = mdl.edit:colEnd(); M.insert(mdl)
+  return nil, true
 end}
-Action{ name='changeLine', brief='change line', fn = function(mdl)
-  M.deleteLine(mdl); M.insert(mdl)
+Action{ name='deleteLine', brief='delete line',
+  fn = function(mdl, ev)
+    return doTimes(ev, function()
+      mdl.edit.buf.gap:remove(mdl.edit.l, mdl.edit.l)
+    end)
+  end,
+}
+Action{ name='changeEoL', brief='change to EoL', fn = function(mdl)
+  M.deleteEoL(mdl); M.insert(mdl)
+  return nil, true
 end}
-Action{ name='deleteLine', brief='delete line', fn = M.deleteLine }
+Action{ name='deleteEoL', brief='delete to EoL', fn = M.deleteEoL }
 
 ----------------
 -- Movement: these can be used by commands that expect a movement
 --           event to be emitted.
+
+local function terminateMovement(mdl, ev, fn)
+  local e = mdl.edit
+  for _=1, ev.times or 1 do
+    if ev.exec then
+      ev.l, ev.c = fn(mdl, ev)
+      assert(not M.Actions[ev.exec].fn(mdl, ev))
+    else e.l, e.c = fn(mdl, ev) end
+  end
+end
+
 Action{ name='left', brief='move cursor left',
-  fn = function(mdl) return List{{'move', l = mdl.edit.l,
-    c=max(1, mdl.edit.c - 1)
-  }}
-  end,
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      return mdl.edit.l, max(1, mdl.edit.c - 1)
+    end
+  )end,
 }
 Action{ name='up', brief='move cursor up',
-  fn = function(mdl) return List{{'move', c = mdl.edit.c,
-    l=max(1, mdl.edit.l - 1),
-  }}
-  end,
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      return max(1, mdl.edit.l - 1), mdl.edit.c
+    end
+  )end,
 }
 Action{ name='right', brief='move cursor right',
-  fn = function(mdl) return List{{'move', l = mdl.edit.l,
-    c=min(mdl.edit.c + 1, #mdl.edit:curLine() + 1),
-  }}
-  end,
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      local c = min(mdl.edit.c + 1, #mdl.edit:curLine() + 1)
+      return mdl.edit.l, c
+    end
+  )end,
 }
 Action{ name='down', brief='move cursor down',
-  fn = function(mdl)
-    local e, ev = mdl.edit, {'move'}
-    ev.l, ev.c = min(e.l + 1, e:len() + 1), e.c
-    if ev.l > e:len() then
-      ev.l, ev.c = e:len(), #e:lastLine() + 1
-    end;
-    return List{ev}
-  end,
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      local e = mdl.edit
+      local l, c = min(e.l + 1, e:len() + 1), e.c
+      if l > e:len() then
+        l, c = e:len(), #e:lastLine() + 1
+      end; return l, c
+    end
+  )end,
 }
 
 Action{ name='forword', brief='find the start of the next word',
-  fn = function(mdl)
-    pnt('forword start')
-    local e = mdl.edit
-    local out = List{{'move', l=e.l,
-      c = motion.forword(e:curLine(), e.c) or (#e:curLine() + 1),
-    }}
-    pnt('forword start')
-    return out
-  end,
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      local e = mdl.edit;
+      local c = motion.forword(e:curLine(), e.c) or (#e:curLine() + 1)
+      return e.l, c
+    end
+  )end,
 }
 Action{ name='backword', brief='find the start of this (or previous) word',
-  fn = function(mdl)
-    local e = mdl.edit
-    return List{{'move', l=e.l,
-      c = motion.backword(e:curLine(), e.c) or 1,
-    }}
-  end,
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      local e = mdl.edit;
+      return e.l, motion.backword(e:curLine(), e.c) or 1
+    end
+  )end,
 }
-Action{ name='SoL', brief='start of line', fn = function(mdl)
-  return List{{'move', l=mdl.edit.l, c=1}}
-end}
-Action{ name='EoL', brief='end of line', fn = function(mdl)
-  local e = mdl.edit; return List{{'move', l=e.l, c=e:colEnd()}}
-end}
+Action{ name='SoL', brief='start of line',
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      return mdl.edit.l, 1
+    end
+  )end,
+}
+Action{ name='EoL', brief='end of line',
+  fn = function(mdl, ev) return terminateMovement(mdl, ev,
+    function(mdl, ev)
+      return mdl.edit.l, mdl.edit:colEnd()
+    end
+  )end,
+}
 
 ----------------
 -- Chains
-local function timesChain(self, mdl, ev)
-  if ev[1] == 'rawKey' and '0' <= ev.key and ev.key <= '9' then
-    self.times = (self.times * 10) + tonumber(ev.key)
-  else
-    ev.times, mdl.chain = max(1, self.times), nil
-    return List{ev}
-  end
-end
-Action{ name='times', brief='set mdl.times (do an action multiple times)',
-  fn = function(mdl, _ev)
-    local ev = {'chain', 'times', times=_ev.times or 0, sub=false, fn=timesChain}
-    return List{ev}
+Action{ name='times',
+  brief='do an action multiple times (set with 1-9)',
+  fn = function(mdl, ev)
+    return {'chain',
+      times=((ev.times or 0) * 10) + tonumber(ev.key)
+    }
   end
 }
 
-----
--- Delete Chain
-local function deleteChain(self, mdl, ev)
-  local out, mv, act = nil, nil, ev[1]
-  if act == 'rawKey' and ev.key == 'd' then -- special: delete line
-    e.buf.gap:remove(e.l, e.l)
-  elseif act == 'move' then
-    local e = mdl.edit
-    if e.l == ev.l then
-      e.buf.gap:remove(e.l, ev.l, e.c, motion.decDistance(e.c, ev.c))
-    else e.buf.gap:remove(e.l, ev.l)
+Action{ name='delete', brief='delete to movement',
+  fn = function(mdl, ev)
+    if ev.rawKey and ev.key == 'd' then
+      return chain(ev, 'deleteLine')
     end
-  else out = chainSub(self, mdl, ev, {times=self.times}) end
-  return out
-end
-Action{ name='delete', brief='delete chain (use movement)',
-  fn = function(mdl, _ev)
-    local ev = {'chain', 'delete', times=_ev.times or 1, sub=false, fn=deleteChain}
-    return List{ev}
+    return chain(ev, 'chain', { exec='deleteDone' })
+  end
+}
+
+Action{ name='deleteDone', brief='delete to movement',
+  fn = function(mdl, ev)
+    pnt('deleteDone', ev)
+    local e = mdl.edit
+    if ev.l then
+     if e.l == ev.l then
+       e.buf.gap:remove(
+         e.l, ev.l, e.c, motion.decDistance(e.c, ev.c))
+     else e.buf.gap:remove(e.l, ev.l)
+     end
+
+    end
   end
 }
 
