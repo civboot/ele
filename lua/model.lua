@@ -190,8 +190,9 @@ bindings.BINDINGS:updateCommand{
   h=A.left, j=A.down, k=A.up, l=A.right,
   w=A.forword, b=A.backword,
   ['0']=A.SoL, ['$']=A.EoL,
-  -- movement chains
-  d=A.delete,
+
+  -- chains
+  f=A.find, F=A.findBack, d=A.delete,
 }
 for b=byte('1'),byte('9') do
   bindings.BINDINGS.command[char(b)] = A.times

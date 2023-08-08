@@ -282,9 +282,17 @@ test('deleteChain', nil, function()
   t:init(2, 8); m:draw(); assertEq(DEL_CHAIN_3, tostring(t))
   pnt('gap 2:', e.buf.gap)
   stepKeys(m, 'l j d d');
-  pnt('gap 3:', e.buf.gap)
      assertEq(1, e.l); assertEq(2, e.c)
      assertEq('12 34+56\n', tostring(t))
+  stepKeys(m, 'f 4');
+    assertEq(1, e.l); assertEq(5, e.c)
+  stepKeys(m, 'd f 5');
+     assertEq(1, e.l); assertEq(5, e.c)
+     assertEq('12 356\n', tostring(t))
+
+  stepKeys(m, 'd F 2');
+    assertEq(1, e.l); assertEq(2, e.c)
+    assertEq('156\n', tostring(t))
 end)
 
 
