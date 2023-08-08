@@ -47,6 +47,7 @@ M.Edit = struct('Edit', {
   {'vl', Num}, {'vc', Num}, -- view   line, col (top-left)
   {'tl', Num}, {'tc', Num}, -- term   line, col (top-left)
   {'th', Num}, {'tw', Num}, -- term   height, width
+  {'fh', Num, 0}, {'fw', Num, 0}, -- force h,w
 
   -- where this is contained
   -- (Lede, Rows, Cols)

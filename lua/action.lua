@@ -56,7 +56,6 @@ end
 ---------------------------------
 -- Core Functionality
 Action{ name='chain', brief='start/continue a chain', fn = function(mdl, ev)
-  pnt('chain set', ev)
   mdl.chain = ev
 end}
 Action{ name='move', brief='move cursor', fn = M.move, }
@@ -67,7 +66,6 @@ Action{ name='insert', brief='go to insert mode', fn = M.insert, }
 Action{
   name='rawKey', brief='the raw key handler (directly handles all key events)',
   fn = function(mdl, ev)
-    pnt('raw 0')
     local key = assert(ev.key)
     assert(type(key) == 'string', key)
     if ev.execRawKey then
@@ -97,7 +95,7 @@ local function unboundCommand(mdl, keys)
 end
 local function unboundInsert(mdl, keys)
   if not mdl.edit then return mdl:status(
-    'Open a buffer to insert'
+    'open a buffer to insert', 'info'
   )end
   for _, k in ipairs(keys) do
     if not term.isInsertKey(k) then
@@ -262,7 +260,7 @@ Action{ name='findChar', brief='find a specific character',
     function(mdl, ev)
       local ch, e = ev.key, mdl.edit; assert(ev.rawKey)
       if #ch ~= 1 then
-        mdl:status('warn: find='..ch)
+        mdl:status('find='..ch, 'invalid')
         return
       end
       return mdl.edit.l, e:curLine():find(ch, e.c)
@@ -279,7 +277,7 @@ Action{ name='findCharBack', brief='find a specific character',
     function(mdl, ev)
       local ch, e = ev.key, mdl.edit; assert(ev.rawKey)
       if #ch ~= 1 then
-        mdl:status('warn: find='..ch)
+        mdl:status('find='..ch, 'invalid')
         return
       end
       local r = e:curLine():sub(1, e.c-1):reverse()
@@ -310,7 +308,6 @@ Action{ name='deleteLine', brief='delete line',
 }
 Action{ name='deleteDone', brief='delete to movement',
   fn = function(mdl, ev)
-    pnt('deleteDone', ev)
     local e = mdl.edit, assert(ev.l and ev.c)
     local c, c2
     if e.l == ev.l then

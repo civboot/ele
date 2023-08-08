@@ -74,17 +74,18 @@ end)
 ----------------------------------
 -- Draw Window
 
-M.calcPeriod = function(size, sep, num)
-  assert(num >= 1)
-  sep = sep * (num - 1)
-  return math.floor((size - sep) / num)
-end
-
-local function drawChild(isLast, point, remain, period, sep)
-  local size = (isLast and remain) or period
-  point = point + size + ((isLast and 0) or sep)
-  remain = remain - size
-  return point, remain, size - (isLast and sep or 0)
+local function drawChild(isLast, point, remain, period, sep, force)
+  if 0 == force then force = nil end
+  local size = (isLast and remain) or force or period
+  if size > remain then
+    size, point = remain, point + remain
+    remain = 0
+  else
+    point = point + size + ((isLast and 0) or sep)
+    remain = remain - size - (isLast and sep or 0)
+    size = size - (isLast and sep or 0)
+  end
+  return point, remain, size
 end
 
 -- Draw horizontal separator at l,c of width
@@ -103,6 +104,30 @@ local function drawSepV(term, l, c, h, sep)
   end
 end
 
+-- return the forced dimension and the number of forceDim children
+-- sc: if true, return 0 at first non-forceWidth child
+method(Window, 'forceDim', function(w, dimFn, sc)
+  local fd, n = 0, 0; for _, ch in ipairs(w) do
+    local d = ch[dimFn](ch)
+    if d ~= 0 then n, fd = n + 1, fd + d
+    elseif sc then return 0, 0 end
+  end; return fd, n
+end)
+method(Window, 'forceWidth',  function(w, dimFn)
+  return  w:forceDim('forceWidth', true)
+end)
+method(Window, 'forceHeight', function(w, dimFn)
+  return  w:forceDim('forceHeight', true)
+end)
+
+method(Window, 'period', function(w, size, forceDim, sep)
+  assert(#w >= 1); sep = sep * (#w - 1)
+  local fd, n = w:forceDim(forceDim, false)
+  if fd + sep > size then return 0 end
+  local varDim = math.floor((size - fd - sep) / (#w - n))
+  return varDim
+end)
+
 method(Window, 'draw', function(w, term, isRight)
   assert(#w > 0, "Drawing empty window")
   if not w.splitkind then
@@ -111,22 +136,33 @@ method(Window, 'draw', function(w, term, isRight)
     child:draw(term, isRight)
   elseif 'v' == w.splitkind then -- verticle split
     assert(#w > 1)
-    local tc, twRemain, period = w.tc, w.tw, M.calcPeriod(w.tw, #VSEP, #w)
+    local tc, remain = w.tc, w.tw
+    local period = w:period(w.tw, 'forceWidth', #VSEP)
     for ci, child in ipairs(w) do
-      local isLast = ci == #w
+      if remain <= 0 then break end
+      local isLast = (ci == #w) or (remain <= 1)
       updateKeys(w[ci], w, {'tl', 'th'}); child.tc = tc
-      tc, twRemain, w[ci].tw = drawChild(isLast, tc, twRemain, period, #VSEP)
+      tc, remain, w[ci].tw = drawChild(
+        isLast, tc, remain, period, #VSEP, child:forceWidth())
       child:draw(term, isRight and isLast)
-      if not isLast then drawSepV(term, w.tl, tc - #VSEP, w.th, VSEP) end
+      if not isLast then
+        drawSepV(term, w.tl, tc - #VSEP, w.th, VSEP)
+      end
     end
   elseif 'h' == w.splitkind then -- horizontal split
     assert(#w > 1)
-    local tl, thRemain, period = w.tl, w.th, M.calcPeriod(w.th, #HSEP, #w)
+    local tl, remain = w.tl, w.th
+    local period = w:period(w.th, 'forceHeight', #HSEP)
     for ci, child in ipairs(w) do
+      if remain <= 0 then break end
+      local isLast = ci == #w
       updateKeys(child, w, {'tc', 'tw'}); child.tl = tl
-      tl, thRemain, child.th = drawChild(ci == #w, tl, thRemain, period, #HSEP)
+      tl, remain, child.th = drawChild(
+        isLast, tl, remain, period, #HSEP, child:forceHeight())
       child:draw(term, isRight)
-      if ci < #w then drawSepH(term, tl - #HSEP, w.tc, w.tw, HSEP) end
+      if ci < #w and remain > 0 then
+        drawSepH(term, tl - #HSEP, w.tc, w.tw, HSEP)
+      end
     end
   end
 end)

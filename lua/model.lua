@@ -37,8 +37,9 @@ method(Model, 'new', function(term_, inputCo)
     inputCo=inputCo, term=term_,
     events=LL(),
   }
-  mdl.statusEdit = Edit.new(mdl, Buffer.new())
-  mdl.view, mdl.edit = mdl.statusEdit, mdl.statusEdit
+  local se = Edit.new(mdl, Buffer.new())
+  se.fh = 1
+  mdl.statusEdit, mdl.view, mdl.edit = se, se, se
   return setmetatable(mdl, Model)
 end)
 -- Call after term is setup
@@ -49,9 +50,12 @@ end)
 
 -- #####################
 -- # Utility methods
-method(Model, 'status', function(self, msg)
+method(Model, 'status', function(self, msg, kind)
   if type(msg) ~= 'string' then msg = concat(msg) end
+  kind = kind and string.format('[%s] ', kind) or '[status] '
+  msg = kind .. msg
   local e = self.statusEdit
+  assert(not msg:find('\n'))
   e.buf.gap:append(msg); e.l, e.c = e:len(), 1
   pnt('Status: ', msg)
 end)
@@ -84,7 +88,7 @@ end)
 --   * update
 
 method(Model, 'unrecognized', function(self, keys)
-  self:status('unrecognized chord: ' .. concat(keys, ' '))
+  self:status('chord: ' .. concat(keys, ' '), 'unset')
 end)
 
 method(Model, 'defaultAction', function(self, keys)
@@ -108,10 +112,8 @@ end)
 
 method(Model, 'actRaw', function(self, ev)
   local act = Actions[ev[1]]
-  pnt('actRaw', ev)
   if not act then error('unknown action: ' .. tfmt(ev)) end
   local out = act.fn(self, ev) or List{}
-  pnt('actRaw done')
   return out
 end)
 

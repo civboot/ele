@@ -126,10 +126,6 @@ test('move', nil, function()
                assertEq(List{'123x'}, e.canvas)
 end)
 
-test('calcPeriod', nil, function()
-  assertEq(9, window.calcPeriod(20, 2, 2))
-end)
-
 local function splitSetup(m, kind)
   local eR = m.edit
   assertEq(2, eR.id)
@@ -171,7 +167,7 @@ test('splitV', nil, function()
     '1234567\n123')
   local w, eL, eR = splitSetup(m, 'v')
   assertEq(20, w.tw)
-  assertEq(10, eR.tw);
+  assertEq(10, eR.tw)
   assertEq(9,  eL.tw)
   assertEq(SPLIT_CANVAS_V, tostring(m.term))
 end)
@@ -202,29 +198,43 @@ test('splitEdit', nil, function()
     assertEq(3, eB.l); assertEq(7, eB.c)
 end)
 
-local STATUS_1 = [[
+local STATUS_0=[[
 *123456789*12345
 1 This is to man
+2               
+3               
+4     It's nice 
+5               
+6               
 ----------------
-
 ]]
 
-local STATUS_2 = [[
+local STATUS_1 = [[
 hi *123456789*12
 1 This is to man
+2               
+3               
+4     It's nice 
+5               
+6               
 ----------------
-
-]]
+[unset] chord: ~]]
 
 test('withStatus', nil, function()
-  local m, status, eTest = testModel(5, 16)
+  local h, w = 9, 16
+  local m, status, eTest = testModel(h, w)
   local t = m.term
+  m:draw()
   assertEq(eTest, m.edit)
   assertEq(1, indexOf(m.view, eTest))
   assertEq(2, indexOf(m.view, status))
+  assertEq(1, status.fh); assertEq(1, status:forceHeight())
+  assertEq(1, m.view:forceDim('forceHeight', false))
+  assertEq(7, m.view:period(9, 'forceHeight', 1))
+
+  assertEq(STATUS_0, tostring(t))
+  stepKeys(m, 'i h i space ^J ~') -- type a bit, trigger status
   assertEq(STATUS_1, tostring(t))
-  stepKeys(m, 'i h i space')
-  assertEq(STATUS_2, tostring(t))
 end)
 
 test('moveWord', nil, function()

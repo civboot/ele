@@ -26,6 +26,8 @@ method(Edit, 'copy', function(e)
   return copy(e, {id=nextViewId()})
 end)
 method(Edit, 'close', function(e) pnt('TODO<edit close>') end)
+method(Edit, 'forceHeight', function(e) return e.fh end)
+method(Edit, 'forceWidth', function(e)  return e.fw end)
 method(Edit, 'offset', function(e, off)
   return e.buf.gap:offset(off, e.l, e.c)
 end)
@@ -82,6 +84,8 @@ end)
 method(Edit, 'draw', function(e, term, isRight)
   assert(term); e:viewCursor()
   e.canvas = List{}
+  -- assert(e.fh == 0 or e.fh == e.th)
+  -- assert(e.fw == 0 or e.fw == e.tw)
   for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.th - 1)) do
     e.canvas:add(string.sub(line, e.vc, e.vc + e.tw - 1))
   end
@@ -90,7 +94,6 @@ method(Edit, 'draw', function(e, term, isRight)
   for _, line in ipairs(e.canvas) do
     local c = e.tc
     for char in line:gmatch'.' do
-      pnt('draw', l, c, char)
       term:set(l, c, char)
       c = c + 1
     end
@@ -108,7 +111,6 @@ end)
 -- Called by model for only the focused editor
 method(Edit, 'drawCursor', function(e, term)
   e:viewCursor()
-  pnt('drawCursor', e.l, e.buf.gap)
   local c = min(e.c, #e:curLine() + 1)
   term:golc(e.tl + (e.l - e.vl), e.tc + (c - e.vc))
 end)
