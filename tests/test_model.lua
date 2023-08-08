@@ -266,10 +266,10 @@ test('modLine', nil, function()
   stepKeys(m, '$'); assertEq(1, e.l); assertEq(7, e.c)
 end)
 
-
 DEL_CHAIN_0 = '12 34 567'
 DEL_CHAIN_1 = '34 567'
 DEL_CHAIN_2 = '567'
+DEL_CHAIN_3 = '12 34+56\n78+9'
 test('deleteChain', nil, function()
   local m = mockedModel(1, 8, DEL_CHAIN_0)
   local e, t = m.edit, m.term; e.l, e.c = 1, 1
@@ -277,6 +277,14 @@ test('deleteChain', nil, function()
     assertEq(DEL_CHAIN_1, tostring(t))
   stepKeys(m, '2 d w'); assertEq(1, e.l); assertEq(1, e.c)
      assertEq('', tostring(t))
+  e.buf.gap:insert(DEL_CHAIN_3, 1, 1)
+  pnt('gap 1:', e.buf.gap)
+  t:init(2, 8); m:draw(); assertEq(DEL_CHAIN_3, tostring(t))
+  pnt('gap 2:', e.buf.gap)
+  stepKeys(m, 'l j d d');
+  pnt('gap 3:', e.buf.gap)
+     assertEq(1, e.l); assertEq(2, e.c)
+     assertEq('12 34+56\n', tostring(t))
 end)
 
 

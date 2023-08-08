@@ -40,8 +40,13 @@ end)
 
 -- update view to see cursor (if needed)
 method(Edit, 'viewCursor', function(e)
+  -- if e.l > e:len() then e.l = e:len() end
+  if e.l > e:len() then error(
+    ('e.l OOB: %s > %s'):format(e.l, e:len())
+  )end
   local l, c = e.l, e.c
   l = bound(l, 1, e:len()); c = e:boundCol(c, l)
+  if e.vl > l            then e.vl = l end
   if l < e.vl            then e.vl = l end
   if l > e.vl + e.th - 1 then e.vl = l - e.th + 1 end
   if c < e.vc            then e.vc = c end
@@ -58,7 +63,8 @@ method(Edit, 'insert', function(e, s)
     e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
   end
 end)
-method(Edit, 'remove', function(e, off, l, c)
+-- remove offset
+method(Edit, 'removeOff', function(e, off, l, c)
   if off == 0 then return end
   l, c = l or e.l, c or e.c; local gap = e.buf.gap
   if l < e.l or (l == e.l and c <= e.c) then
@@ -79,10 +85,12 @@ method(Edit, 'draw', function(e, term, isRight)
   for i, line in ipairs(e.buf.gap:sub(e.vl, e.vl + e.th - 1)) do
     e.canvas:add(string.sub(line, e.vc, e.vc + e.tw - 1))
   end
+  while #e.canvas < e.th do e.canvas:add('') end
   local l = e.tl
   for _, line in ipairs(e.canvas) do
     local c = e.tc
     for char in line:gmatch'.' do
+      pnt('draw', l, c, char)
       term:set(l, c, char)
       c = c + 1
     end
@@ -99,6 +107,8 @@ end)
 
 -- Called by model for only the focused editor
 method(Edit, 'drawCursor', function(e, term)
+  e:viewCursor()
+  pnt('drawCursor', e.l, e.buf.gap)
   local c = min(e.c, #e:curLine() + 1)
   term:golc(e.tl + (e.l - e.vl), e.tc + (c - e.vc))
 end)

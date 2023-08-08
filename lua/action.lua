@@ -139,7 +139,7 @@ Action{
   fn = function(mdl, ev)
     return doTimes(ev, function()
       local l, c = mdl.edit:offset(-1)
-      mdl.edit:remove(-1, l, c)
+      mdl.edit:removeOff(-1, l, c)
     end)
   end,
 }
@@ -160,13 +160,6 @@ Action{ name='appendLine', brief='append to line', fn = function(mdl)
   mdl.edit.c = mdl.edit:colEnd(); M.insert(mdl)
   return nil, true
 end}
-Action{ name='deleteLine', brief='delete line',
-  fn = function(mdl, ev)
-    return doTimes(ev, function()
-      mdl.edit.buf.gap:remove(mdl.edit.l, mdl.edit.l)
-    end)
-  end,
-}
 Action{ name='changeEoL', brief='change to EoL', fn = function(mdl)
   M.deleteEoL(mdl); M.insert(mdl)
   return nil, true
@@ -266,13 +259,21 @@ Action{ name='times',
 
 Action{ name='delete', brief='delete to movement',
   fn = function(mdl, ev)
-    if ev.rawKey and ev.key == 'd' then
+    if ev.delete and ev.key == 'd' then
       return chain(ev, 'deleteLine')
     end
-    return chain(ev, 'chain', { exec='deleteDone' })
+    return chain(ev, 'chain', {exec='deleteDone', delete=true})
   end
 }
-
+Action{ name='deleteLine', brief='delete line',
+  fn = function(mdl, ev)
+    return doTimes(ev, function()
+      local e = mdl.edit
+      e.buf.gap:remove(e.l, e.l)
+      e.l = min(1, e.l - 1)
+    end)
+  end,
+}
 Action{ name='deleteDone', brief='delete to movement',
   fn = function(mdl, ev)
     pnt('deleteDone', ev)

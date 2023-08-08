@@ -27,6 +27,10 @@ test('insert', nil, function()
   assertEq('foo\nand baz bar', tostring(g))
   g:insert('buz ', 2, 4)
   assertEq('foo\nand buz baz bar', tostring(g))
+
+  g = Gap.new()
+  g:insert('foo\nbar', 1, 1)
+  assertEq('foo\nbar', tostring(g))
 end)
 
 test('remove', nil, function()
