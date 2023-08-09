@@ -18,11 +18,14 @@ M.Change = struct('Change', {
   {'cur', CursorChange, false},
 })
 M.Buffer = struct('Buffer', {
+  'id',
   {'gap', gap.Gap},
 
   -- recorded changes from update
   {'changes', List}, {'changeI', Num}, -- undo/redo
   {'changeMax', Num},
+
+  'mdl',
 })
 
 -- Window container
@@ -68,7 +71,7 @@ M.Model = struct('Model', {
   'view', -- Edit or Cols or Rows
   'edit', -- The active editor
   'statusEdit', 'searchEdit',
-  {'buffers', List}, {'bufferI', Num},
+  {'buffers', Map}, {'bufId', Num}, {'bufIds', Map},
   {'start', Epoch}, {'lastDraw', Epoch},
   {'bindings', Bindings},
   {'chord', Map, false}, {'chordKeys', List},

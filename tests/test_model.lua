@@ -42,9 +42,8 @@ local function mockedModel(h, w, s, inputs)
   local mdl = Model.new(
     term.FakeTerm(h, w),
     mockInputs(inputs or ''):iterV())
-  local e = Edit.new(mdl, Buffer.new(s), h, w)
-  mdl.view, mdl.edit = e, e
-  assertEq(mdl, e.container)
+  local e = mdl:newEdit(nil, s)
+  e.container, mdl.view, mdl.edit = mdl, e, e
   mdl:init()
   return mdl
 end

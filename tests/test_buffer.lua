@@ -53,7 +53,8 @@ test('undoInsRm', nil, function()
   assertEq('345\n', tostring(g))
 end)
 
-test('undoRm', nil, function()
+test('undoReal', nil, function()
+  -- repro a bug I found
   local START = "4     It's nice to have some real data"
   local b = Buffer.new(START); local g, ch = b.gap
   local ch1 = Change{k='rm', s='It',  l=1, c=7}

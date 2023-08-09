@@ -28,7 +28,7 @@ method(Model, 'new', function(term_, inputCo)
   local mdl = {
     mode='command',
     h=-1, w=-1,
-    buffers=List{}, bufferI=1,
+    buffers=Map{}, bufId=1, bufIds=List{},
     start=Epoch(0), lastDraw=Epoch(0),
     bindings=Bindings.default(),
     chord=nil, chordKeys=List{},
@@ -36,9 +36,10 @@ method(Model, 'new', function(term_, inputCo)
     inputCo=inputCo, term=term_,
     events=LL(),
   }
-  mdl.statusEdit = Edit.new(nil, Buffer.new())
-  mdl.searchEdit = Edit.new(nil, Buffer.new())
-  return setmetatable(mdl, Model)
+  mdl = setmetatable(mdl, Model)
+  mdl.statusEdit = mdl:newEdit('status')
+  mdl.searchEdit = mdl:newEdit('search')
+  return mdl
 end)
 -- Call after term is setup
 method(Model, 'init', function(m)
@@ -47,7 +48,7 @@ method(Model, 'init', function(m)
 end)
 
 -- #####################
--- # Utility methods
+-- # Status
 method(Model, 'showStatus', function(self)
   local s = self.statusEdit
   if s.container then return end
@@ -83,10 +84,32 @@ method(Model, 'loopReturn', function(self)
   -- end
   return false
 end)
+
+-- #####################
+-- # Bindings
 method(Model, 'getBinding', function(self, key)
   if self.chord then return self.chord[key] end
   -- TODO: buffer bindings
   return self.bindings[self.mode][key]
+end)
+
+-- #####################
+-- # Buffers
+method(Model, 'newBuffer', function(self, id, s)
+  id = id or self.bufIds:pop()
+  if not id then id = self.bufId; self.bufId = self.bufId + 1 end
+  if self.buffers[id] then error('Buffer already exists: ' .. tostring(id)) end
+  local b = Buffer.new(s); b.id = id
+  self.buffers[id] = b
+  return b
+end)
+method(Model, 'closeBuffer', function(self, b)
+  local id = b.id; self.buffers[id] = nil
+  if type(id) == 'number' then self.bufIds:add(id) end
+  return b
+end)
+method(Model, 'newEdit', function(self, bufId, bufS)
+  return Edit.new(nil, self:newBuffer(bufId, bufS))
 end)
 
 -- #####################
@@ -100,29 +123,9 @@ end)
 
 -- #####################
 --   * update
-
 method(Model, 'unrecognized', function(self, keys)
   self:status('chord: ' .. concat(keys, ' '), 'unset')
 end)
-
-method(Model, 'defaultAction', function(self, keys)
-  if self.mode == 'command' then
-    self:unrecognized(keys)
-  elseif self.mode == 'insert' then
-    if not self.edit then return self:status(
-      'Open a buffer to insert'
-    )end
-
-    for _, k in ipairs(keys) do
-      if not term.insertKey(k) then
-        self:unrecognized(k)
-      else
-        self.edit:insert(term.KEY_INSERT[k] or k)
-      end
-    end
-  end
-end)
-
 
 method(Model, 'actRaw', function(self, ev)
   local act = Actions[ev[1]]
@@ -189,7 +192,8 @@ end)
 
 M.testModel = function(t, inp)
   local mdl = Model.new(t, inp)
-  mdl.edit = Edit.new(mdl, Buffer.new(data.TEST_MSG))
+  mdl.edit = mdl:newEdit(nil, data.TEST_MSG)
+  mdl.edit.container = mdl
   mdl.view = mdl.edit; mdl:showStatus()
   return mdl, mdl.statusEdit, mdl.edit
 end
