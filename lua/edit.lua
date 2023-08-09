@@ -68,7 +68,9 @@ end)
 -- These are going to track state/cursor/etc
 method(Edit, 'insert', function(e, s)
   local c = e.c; e.buf.gap:insert(s, e.l, c - 1);
+  pnt(string.format('insert %q l=%s c=%s', s, e.l, e.c))
   e.l, e.c = e.buf.gap:offset(#s, e.l, c)
+  pnt('   ', e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
   if (e.l > 1) and (e.c == 1) and ('\n' ~= strLast(s)) then

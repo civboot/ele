@@ -39,45 +39,70 @@ local function lcs(l, c, l2, c2)
   return l, c, l2, c2
 end; M.lcs = lcs
 
-method(Gap, 'len', function(g) return #g.bot + #g.top end)
-method(Gap, 'cur', function(g) return g.bot[#g.bot]  end)
+method(Gap, 'len',  function(g) return #g.bot + #g.top end)
+method(Gap, 'cur',  function(g) return g.bot[#g.bot]  end)
 
 method(Gap, 'get', function(g, l)
   local bl = #g.bot
   if l <= bl then  return g.bot[l]
   else return g.top[#g.top - (l - bl) + 1] end
 end)
+method(Gap, 'last', function(g) return g:get(g:len()) end)
 
 -- Get the l, c with the +/- offset applied
+
 method(Gap, 'offset', function(g, off, l, c)
-  local len, m = g:len(), 0
-  local line = g:get(l); c = max(1, min(c, #line + 1))
+  pnt('## offset', off, l, c)
+  local len, m, llen, line = g:len()
+  -- 0 based index for column
+  l = bound(l, 1, len); c = bound(c - 1, 0, #g:get(l))
   while off > 0 do
     line = g:get(l)
     if nil == line then return len, #g:get(len) + 1 end
-    if c < #line then
-      m = min(off, #line - c) -- move amount
-      off, c = off - m, c + m
-    else
-      off, l, c = off - 1, l + 1, 1
+    llen = #line + 1 -- +1 is for the newline
+    c = bound(c, 0, llen); m = llen - c
+    pnt('off>0', off, l, c, m, llen)
+    if m > off then c = c + off; off = 0;
+    else l, c, off = l + 1, 0, off - m
     end
+    if l > len then return len, #g:get(len) + 1 end
   end
   while off < 0 do
     line = g:get(l)
     if nil == line then return 1, 1 end
-    c = min(#line, c)
-    if c > 1 then
-      m = max(off, -c) -- move amount (negative)
-      off, c = off - m, c + m
-    else
-      off, l, c = off + 1, l - 1, CMAX
+    llen = #line
+    c = bound(c, 0, llen); m = -c - 1
+    if m < off then c = c + off; off = 0
+    else l, c, off = l - 1, CMAX, off - m
     end
+    if l <= 0 then return 1, 1 end
   end
-  if CMAX == c then
-    c = g:get(l)
-    c = c and #c or 1
+  l = bound(l, 1, len)
+  return l, bound(c, 0, #g:get(l)) + 1
+end)
+
+method(Gap, 'offsetOf', function(g, l, c, l2, c2)
+  c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
+  local len = g:len()
+  l, l2 = bound(l, 1, len), bound(l2, 1, len)
+  c, c2 = bound(c, 0, #g:get(l)), bound(c2, 0, #g:get(l2))
+  local off, llen = 0
+  while l < l2 do
+    llen = #g:get(l) + 1
+    c = bound(c, 0, llen)
+    off = off + (llen - c)
+    l, c = l + 1, 0
   end
-  return l, (CMAX == c and #(g:get(l))) or c
+  while l > l2 do
+    llen = #g:get(l) + ((l==len and 0) or 1)
+    c = bound(c, 0, llen)
+    off = off - c
+    l, c = l - 1, CMAX
+  end
+  llen = #g:get(l) + ((l==len and 0) or 1)
+  c, c2 = bound(c, 0, llen), bound(c2, 0, llen)
+  off = off + (c2 - c)
+  return off
 end)
 
 -- set the gap to the line

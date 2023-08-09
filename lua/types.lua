@@ -25,6 +25,7 @@ M.Buffer = struct('Buffer', {
 
   -- recorded changes from update
   {'changes', List}, {'changeI', Num}, -- undo/redo
+  {'changeMax', Num},
 })
 
 -- Window container

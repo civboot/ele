@@ -226,7 +226,6 @@ Action{ name='down', brief='move cursor down',
     end
   )end,
 }
-
 Action{ name='forword', brief='find the start of the next word',
   fn = function(mdl, ev) return doMovement(mdl, ev,
     function(mdl, ev)
@@ -239,11 +238,6 @@ Action{ name='forword', brief='find the start of the next word',
       end
       return len, #e:lastLine() + 1
     end
-    -- function(mdl, ev)
-    --   local e = mdl.edit;
-    --   local c = motion.forword(e:curLine(), e.c) or (#e:curLine() + 1)
-    --   return e.l, c
-    -- end
   )end,
 }
 Action{ name='backword', brief='find the start of this (or previous) word',

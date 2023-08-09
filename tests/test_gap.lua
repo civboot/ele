@@ -76,26 +76,49 @@ test('sub', nil, function()
   g:set(2); subTests(g)
 end)
 
-local function _testOffset(g)
-  local l, c = g:offset(3, 1, 1)
-  assertEq(1, l); assertEq(4, c)
-  l, c = g:offset(5, 1, 1)
-  assertEq(2, l); assertEq(1, c)
-  l, c = g:offset(5, 1, 3)
-  assertEq(2, l); assertEq(3, c)
-  l, c = g:offset(100, 1, 1)
-  assertEq(4, l); assertEq(1, c)
+-- test round-trip offset
+local function offsetRound(g, expect, off, l, c, expectOff)
+  local l2, c2 = g:offset(off, l, c)
+  assertEq(expect, {l2, c2})
+  local res = g:offsetOf(l, c, l2, c2)
+  assertEq(expectOff or off, res)
+end
 
-  l, c = g:offset(-1, 1, 3)
-  assertEq(1, l); assertEq(2, c)
-  l, c = g:offset(-7, 2, 4)
-  assertEq(1, l); assertEq(3, c)
-  l, c = g:offset(-5, 1, 1)
-  assertEq(1, l); assertEq(1, c)
+local OFFSET= '12345\n6789\n'
+local function _testOffset(g)
+  local l, c
+  offsetRound(g, {1, 2}, 0,  1, 2)
+  offsetRound(g, {1, 3}, 1,  1, 2)
+  offsetRound(g, {1, 4}, 3,  1, 1)
+  offsetRound(g, {1, 5}, 4,  1, 1) -- '5'
+  offsetRound(g, {1, 6}, 5,  1, 1) -- '\n'
+  offsetRound(g, {2, 1}, 6,  1, 1) -- '6'
+  offsetRound(g, {2, 4}, 9,  1, 1) -- '9'
+  offsetRound(g, {2, 5}, 10, 1, 1) -- '\n'
+  offsetRound(g, {3, 1}, 11, 1, 1) -- ''
+  offsetRound(g, {3, 1}, 12, 1, 1, 11) -- EOF
+
+  offsetRound(g, {1, 2}, -3, 1, 5) -- '2'
+  offsetRound(g, {1, 1}, -4, 1, 5) -- '1'
+  offsetRound(g, {1, 1}, -5, 1, 5, -4) -- '1'
+
+  offsetRound(g, {2, 5}, -1, 3, 1) -- '\n'
+  offsetRound(g, {2, 4}, -2, 3, 1) -- '9'
+  offsetRound(g, {2, 3}, -3, 3, 1) -- '8'
+  offsetRound(g, {2, 2}, -4, 3, 1) -- '7'
+  offsetRound(g, {2, 1}, -5, 3, 1) -- '6'
+  offsetRound(g, {1, 6}, -6, 3, 1) -- '\n'
+  offsetRound(g, {1, 1}, -11, 3, 1) -- '\n'
+  offsetRound(g, {1, 1}, -12, 3, 1, -11) -- BOF
+
+
+  -- Those are all "normal", let's do some OOB stuff
+  offsetRound(g, {2, 1}, 1,  1, 6)
+  offsetRound(g, {2, 1}, 1,  1, 10) -- note (1, 6) is EOL
 end
 
 test('offset', nil, function()
-  local g = Gap.new('12345\n6789\n98765\n')
+  local g = Gap.new(OFFSET)
   _testOffset(g)
   g:set(1) _testOffset(g)
   g:set(2) _testOffset(g)

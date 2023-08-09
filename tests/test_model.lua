@@ -102,28 +102,28 @@ test('move', nil, function()
     1, 7, -- h, w
     '1234567\n123\n12345',
     'k l h j j') -- up right left down down
-  local e = m.edit; e.l, e.c = 2, 3
-  m:step(); assertEq(1, e.l); assertEq(3, e.c)
-  m:step(); assertEq(1, e.l); assertEq(4, e.c)
-  m:step(); assertEq(1, e.l); assertEq(3, e.c)
-  m:step(); assertEq(2, e.l); assertEq(3, e.c)
-  m:step(); assertEq(3, e.l); assertEq(3, e.c)
+  local e = m.edit; e.l, e.c = 2, 3            -- '3' (l 2)
+  m:step(); assertEq(1, e.l); assertEq(3, e.c) -- '3' (l 1)
+  m:step(); assertEq(1, e.l); assertEq(4, e.c) -- '4' (l 1)
+  m:step(); assertEq(1, e.l); assertEq(3, e.c) -- '3' (l 1)
+  m:step(); assertEq(2, e.l); assertEq(3, e.c) -- '3' (l 2)
+  m:step(); assertEq(3, e.l); assertEq(3, e.c) -- '3' (l 3)
 
   -- now test boundaries
-  m.inputCo = mockInputs('j k l'):iterV() -- down right up right
-  m:step(); assertEq(3, e.l); assertEq(6, e.c) -- down (does nothing)
-  m:step(); assertEq(2, e.l); assertEq(6, e.c) -- up    (column overflow keep)
-  m:step(); assertEq(2, e.l); assertEq(4, e.c) -- right (column overflow set)
+  m.inputCo = mockInputs('j k l'):iterV() -- down up right
+  m:step(); assertEq(3, e.l); assertEq(6, e.c) -- '\n' (l 3 EOF)
+  m:step(); assertEq(2, e.l); assertEq(6, e.c) -- '\n' (l 2)
+  m:step(); assertEq(2, e.l); assertEq(4, e.c) -- '\n' l2  (overflow set)
 
   -- now test insert on overflow
   -- up 3*right down insert-x-
-  m.inputCo = mockInputs('k l l l j i x'):iterV()
-  steps(m, 4); assertEq(1, e.l); assertEq(7, e.c); -- k l l l
+  m.inputCo = mockInputs('k l l l j i x'):iterV()  -- k l l l
+  steps(m, 4); assertEq(1, e.l); assertEq(7, e.c); -- '7' (l 1)
                assertEq(1, e.vl)
-  m:step();    assertEq(2, e.l); assertEq(7, e.c); -- j
+  m:step();    assertEq(2, e.l); assertEq(7, e.c); -- j (l2 overflow)
                assertEq(2, e.vl)
   m:step();    assertEq(2, e.l); assertEq(7, e.c); -- i
-  m:step();    assertEq(2, e.l); assertEq(5, e.c); -- x
+  m:step();    assertEq({2, 5}, {e.l, e.c}) -- x
                assertEq(List{'123x'}, e.canvas)
 end)
 
