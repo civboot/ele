@@ -89,7 +89,6 @@ end)
 -- # Bindings
 method(Model, 'getBinding', function(self, key)
   if self.chord then return self.chord[key] end
-  -- TODO: buffer bindings
   return self.bindings[self.mode][key]
 end)
 

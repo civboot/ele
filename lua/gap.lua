@@ -67,7 +67,6 @@ end)
 
 -- Get the l, c with the +/- offset applied
 method(Gap, 'offset', function(g, off, l, c)
-  pnt('## offset', off, l, c)
   local len, m, llen, line = g:len()
   -- 0 based index for column
   l = bound(l, 1, len); c = bound(c - 1, 0, #g:get(l))
@@ -76,7 +75,6 @@ method(Gap, 'offset', function(g, off, l, c)
     if nil == line then return len, #g:get(len) + 1 end
     llen = #line + 1 -- +1 is for the newline
     c = bound(c, 0, llen); m = llen - c
-    pnt('off>0', off, l, c, m, llen)
     if m > off then c = c + off; off = 0;
     else l, c, off = l + 1, 0, off - m
     end
@@ -147,21 +145,16 @@ method(Gap, 'sub', function(g, ...)
   if lb  > l  then c = 0 end
   if lb2 < l2 then c2 = nil end -- EoL
   l, l2 = lb, lb2
-
-  pnt('gap.sub', l, c, l2, c2)
   local s = List{} -- s is sub
   for i=l, min(l2,          #g.bot) do s:add(g.bot[i]) end
   for i=1, min((l2-l+1)-#s, #g.top) do s:add(g.top[#g.top - i + 1]) end
   if nil == c then -- skip, only lines
   elseif #s == 0 then s = '' -- empty
   elseif l == l2 then
-    pnt('  l==l2', s, c, c2)
     assert(1 == #s); s = sub(s[1], c, c2)
   else
-    pnt('gap.sub str', s[1], s[#s], string.format('cols %s:%s', c, c2))
     s[1] = sub(s[1], c)
     s[#s] = sub(s[#s], 1, c2)
-    -- if #s == l2 - l + 1 then s[#s] = sub(s[#s], 1, c2) end
     s = table.concat(s, '\n')
   end
   return s

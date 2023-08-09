@@ -49,7 +49,6 @@ method(Buffer, 'redo', function(b)
   if b.changeI >= b.changeMax then return nil end
   b.changeI = b.changeI + 1
   local ch = b.changes[b.changeI]
-  pnt('buffer.redo', ch, debug.getinfo(CHANGE_REDO[ch.k]))
   return CHANGE_REDO[ch.k](ch, b)
 end)
 
@@ -59,7 +58,6 @@ method(Buffer, 'append', function(b, s)
   return ch
 end)
 method(Buffer, 'insert', function(b, s, l, c)
-  pnt('insert', l, c, s)
   l, c = b.gap:bound(l, c)
   local ch = b:changeIns(s, l, c)
   b.gap:insert(s, l, c)
@@ -70,10 +68,8 @@ method(Buffer, 'remove', function(b, ...)
   local lt, ct = motion.topLeft(l, c, l2, c2)
   lt, ct = b.gap:bound(lt, ct)
   local ch = b.gap:sub(l, c, l2, c2)
-  pnt('  after bound', l, c, l2, c2, ':top:', lt, ct, 'sub', ch)
   ch = (type(ch)=='string' and ch) or table.concat(ch, '\n')
   ch = b:changeRm(ch, lt, ct)
-  pnt('b.remove', l, c, l2, c2, ch)
   b.gap:remove(l, c, l2, c2)
   return ch
 end)

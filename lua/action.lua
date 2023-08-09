@@ -73,7 +73,6 @@ Action{
     if ev.execRawKey then
       return chain(ev, pop(ev, 'execRawKey'), {rawKey=true})
     end
-
     local action, chordKeys = mdl:getBinding(key), mdl.chordKeys
     chordKeys:add(key)
     if not action then
@@ -86,7 +85,9 @@ Action{
       mdl.chord = action
       if ev.chain then mdl.chain = ev end
       return nil, true
-    end error(action)
+    elseif M.Actions[action[1]] then
+      return List{action} -- raw event
+    end error(tfmt(action))
   end,
 }
 
@@ -177,18 +178,19 @@ Action{ name='del1', brief='delete single character',
 -- If this ever results in a stateless movement
 -- or action then short-circuit and return
 -- whether state happened.
-local function doMovement(mdl, ev, fn)
+local function doMovement(mdl, ev, fn, once)
   local e, sless = mdl.edit, true
   for _=1, ev.times or 1 do
     local l, c = fn(mdl, ev)
     if not l or not c then break end
+    l, c = bound(l, 1, mdl.edit:len()), max(1, c)
     if ev.exec then
       ev.l, ev.c = l, c
       sless = select(2, execChain(mdl, ev))
     else
       e.l, e.c, sless = l, c, false
     end
-    if sless then break end
+    if sless or once then break end
   end
   return nil, sless
 end
@@ -219,10 +221,7 @@ Action{ name='down', brief='move cursor down',
   fn = function(mdl, ev) return doMovement(mdl, ev,
     function(mdl, ev)
       local e = mdl.edit
-      local l, c = min(e.l + 1, e:len() + 1), e.c
-      if l > e:len() then
-        l, c = e:len(), #e:lastLine() + 1
-      end; return l, c
+      return bound(e.l + 1, 1, e:len()), e.c
     end
   )end,
 }
@@ -268,10 +267,11 @@ Action{ name='EoL', brief='end of line',
     end
   )end,
 }
-Action{ name='goTop', brief='go to top of buf',
-  fn = function(mdl, ev) doMovement(mdl, ev,
-    function(mdl, ev) return 1, 1 end
-  )end,
+Action{ name='goTo', brief='go to top of buf',
+  fn = function(mdl, ev)
+    doMovement(mdl, ev,
+      function(mdl, ev) return ev.times or 1, 1 end
+  , true)end,
 }
 Action{ name='goBot', brief='go to bottom of buf',
   fn = function(mdl, ev) doMovement(mdl, ev,
