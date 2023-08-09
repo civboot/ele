@@ -10,7 +10,7 @@ M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
 -- Buffer and sub-types
 M.Cursor = struct('CursorChange', {
-  {'l1', Num}, {'c1', Num}, {'l2', Num}, {'c2', Num},
+  {'l1', Num}, {'c1', Num}, {'l2', Num, false}, {'c2', Num, false},
 })
 M.Change = struct('Change', {
   {'k', Str}, -- kind: ins/rm

@@ -39,16 +39,6 @@ method(Edit, 'lastLine', function(e) return e.buf.gap:get(e:len()) end)
 method(Edit, 'boundCol',  function(e, c, l)
   return bound(c, 1, #e.buf.gap:get(l or e.l) + 1)
 end)
-method(Edit, 'append', function(e, msg)
-  e.buf:append(msg); e.l, e.c = e:len(), 1
-end)
-method(Edit, 'trailWs', function(e, msg)
-  local g = e.buf.gap
-  while g:get(g:len() - 1)    ~= ''
-        or g:get(g:len() - 2) ~= '' do
-    e:append('')
-  end
-end)
 
 -- update view to see cursor (if needed)
 method(Edit, 'viewCursor', function(e)
@@ -65,32 +55,61 @@ method(Edit, 'viewCursor', function(e)
   if c > e.vc + e.tw - 1 then e.vc = c - e.tw + 1 end
 end)
 
--- These are going to track state/cursor/etc
+-----------------
+-- Helpers
+method(Edit, 'trailWs', function(e, msg)
+  local g = e.buf.gap
+  while g:get(g:len() - 1)    ~= ''
+        or g:get(g:len() - 2) ~= '' do
+    e:append('')
+  end
+end)
+
+-----------------
+-- Mutations: these update the changes in the buffer
+method(Edit, 'append', function(e, msg)
+  local l2 = e:len() + 1
+  e.buf:append(msg).cursor = Cursor{l1=e.l, c1=e.c, l2=l2, c2=1}
+  e.l, e.c = l2, 1
+end)
+
 method(Edit, 'insert', function(e, s)
-  local c = e.c; e.buf:insert(s, e.l, c);
-  pnt(string.format('insert %q l=%s c=%s', s, e.l, e.c))
-  e.l, e.c = e.buf.gap:offset(#s, e.l, c)
-  pnt('   ', e.l, e.c)
+  local cur = Cursor{l1=e.l, c1=e.c}
+  local ch = e.buf:insert(s, e.l, e.c);
+  e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
   if (e.l > 1) and (e.c == 1) and ('\n' ~= strLast(s)) then
     e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
   end
+  cur.l2, cur.c2, ch.cur = e.l, e.c, cur
 end)
+
 -- remove offset
 method(Edit, 'removeOff', function(e, off, l, c)
   if off == 0 then return end
   l, c = l or e.l, c or e.c; local gap = e.buf.gap
   if l < e.l or (l == e.l and c < e.c) then
-    pnt('removeOff', off, e.l, e.c)
     e.l, e.c = gap:offset(off, e.l, e.c)
   end
   local l2, c2 = gap:offset(decAbs(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
-  e.buf:remove(l, c, l2, c2)
+  e.buf:remove(l, c, l2, c2).cur = Cursor{l1=l, c1=c, c2=c2, l2=l2}
 end)
 
--- draw to term (l, c, w, h)
+-----------------
+-- Undo / Redo
+method(Edit, 'undo', function(e)
+  local ch = e.buf:undo(); if not ch then return end
+  e.l, e.c = ch.l1, ch.c1
+end)
+method(Edit, 'redo', function(e)
+  local ch = e.buf:redo(); if not ch then return end
+  e.l, e.c = ch.l1, ch.c1
+end)
+
+-----------------
+-- Draw to terminal
 method(Edit, 'draw', function(e, term, isRight)
   assert(term); e:viewCursor()
   e.canvas = List{}
