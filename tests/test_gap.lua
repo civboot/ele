@@ -20,12 +20,12 @@ test('insert', nil, function()
   g:insert('foo bar', 1, 0)
   assertEq('foo bar', tostring(g))
 
-  g:insert('baz ', 1, 4)
+  g:insert('baz ', 1, 5)
   assertEq('foo baz bar', tostring(g))
 
-  g:insert('\nand', 1, 3)
+  g:insert('\nand', 1, 4)
   assertEq('foo\nand baz bar', tostring(g))
-  g:insert('buz ', 2, 4)
+  g:insert('buz ', 2, 5)
   assertEq('foo\nand buz baz bar', tostring(g))
 
   g = Gap.new()
@@ -40,7 +40,7 @@ test('remove', nil, function()
   assertEq('foar', tostring(g))
   assertEq('o b', r)
 
-  g:insert('ab\n123', 1, 3)
+  g:insert('ab\n123', 1, 4)
   assertEq('foaab\n123r', tostring(g))
   r = g:remove(1, 3, 2, 2)
 

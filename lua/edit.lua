@@ -67,7 +67,7 @@ end)
 
 -- These are going to track state/cursor/etc
 method(Edit, 'insert', function(e, s)
-  local c = e.c; e.buf:insert(s, e.l, c - 1);
+  local c = e.c; e.buf:insert(s, e.l, c);
   pnt(string.format('insert %q l=%s c=%s', s, e.l, e.c))
   e.l, e.c = e.buf.gap:offset(#s, e.l, c)
   pnt('   ', e.l, e.c)

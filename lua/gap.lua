@@ -189,7 +189,7 @@ end)
 method(Gap, 'insert', function(g, s, l, c)
   g:set(l)
   local cur = g.bot:pop()
-  g:extend(strinsert(cur, c or 0, s))
+  g:extend(strinsert(cur, c or 1, s))
 end)
 
 -- remove from (l, c) -> (l2, c2), return what was removed
