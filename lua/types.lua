@@ -9,7 +9,7 @@ M.nextViewId   = function() M.ViewId   = M.ViewId   + 1; return M.ViewId   end
 M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
 -- Buffer and sub-types
-M.Cursor = struct('CursorChange', {
+M.CursorChange = struct('CursorChange', {
   {'l1', Num}, {'c1', Num}, {'l2', Num, false}, {'c2', Num, false},
 })
 M.Change = struct('Change', {

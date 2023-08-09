@@ -69,12 +69,12 @@ end)
 -- Mutations: these update the changes in the buffer
 method(Edit, 'append', function(e, msg)
   local l2 = e:len() + 1
-  e.buf:append(msg).cursor = Cursor{l1=e.l, c1=e.c, l2=l2, c2=1}
+  e.buf:append(msg).cursor = CursorChange{l1=e.l, c1=e.c, l2=l2, c2=1}
   e.l, e.c = l2, 1
 end)
 
 method(Edit, 'insert', function(e, s)
-  local cur = Cursor{l1=e.l, c1=e.c}
+  local cur = CursorChange{l1=e.l, c1=e.c}
   local ch = e.buf:insert(s, e.l, e.c);
   e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
@@ -85,7 +85,45 @@ method(Edit, 'insert', function(e, s)
   cur.l2, cur.c2, ch.cur = e.l, e.c, cur
 end)
 
+-- method(Edit, 'remove', function(e, ...)
+--   local cur = CursorChange{l1=e.l, c1=e.c}
+--   local l, c, l2, c2 = gap.lcs(...)
+-- 
+-- 
+--   local ch = e.buf:remove(...)
+-- 
+--   ch.cur = CursorChange{l1=l, c1=c, c2=c2, l2=l2}
+--   if off == 0 then return end
+--   l, c = l or e.l, c or e.c; local gap = e.buf.gap
+--   if l < e.l or (l == e.l and c < e.c) then
+--     e.l, e.c = gap:offset(off, e.l, e.c)
+--   end
+--   local l2, c2 = gap:offset(decAbs(off), l, c)
+--   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
+--   e.buf:remove(l, c, l2, c2)
+-- end)
+
+-- method(Edit, 'remove', function(e, ...)
+--   local l1, c1 = e.l, e.c
+--   local l, c, l2, c2 = gap.lcs(...)
+--   local gap = e.buf.gap
+--   if l < e.l or (l == e.l and c < e.c) then
+--     e.l, e.c = gap:offset(off, e.l, e.c)
+--   end
+--   e.buf:remove(l, c, l2, c2).cur = CursorChange{l1=l1, c1=c1, c2=c2, l2=l2}
+-- end)
+
 -- remove offset
+-- method(Edit, 'removeOff', function(e, off, l, c)
+--   if off == 0 then return end
+--   l, c = l or e.l, c or e.c
+--   local gap = e.buf.gap
+--   local l2, c2 = gap:offset(decAbs(off), l, c)
+--   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
+--   e:remove(l, c, l2, c2)
+--   e.buf:remove(l, c, l2, c2).cur = Cursor{l1=l, c1=c, c2=c2, l2=l2}
+-- end)
+
 method(Edit, 'removeOff', function(e, off, l, c)
   if off == 0 then return end
   l, c = l or e.l, c or e.c; local gap = e.buf.gap
@@ -94,18 +132,20 @@ method(Edit, 'removeOff', function(e, off, l, c)
   end
   local l2, c2 = gap:offset(decAbs(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
-  e.buf:remove(l, c, l2, c2).cur = Cursor{l1=l, c1=c, c2=c2, l2=l2}
+  e.buf:remove(l, c, l2, c2).cur = CursorChange{l1=l, c1=c, c2=c2, l2=l2}
 end)
 
 -----------------
 -- Undo / Redo
 method(Edit, 'undo', function(e)
   local ch = e.buf:undo(); if not ch then return end
-  e.l, e.c = ch.l1, ch.c1
+  local c = assert(ch.cur)
+  e.l, e.c = c.l1, c.c1
 end)
 method(Edit, 'redo', function(e)
   local ch = e.buf:redo(); if not ch then return end
-  e.l, e.c = ch.l1, ch.c1
+  local c = assert(ch.cur)
+  e.l, e.c = c.l1, c.c1
 end)
 
 -----------------

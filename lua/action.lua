@@ -409,4 +409,20 @@ Action{ name='searchPrev', brief='search for previous pattern',
   fn = searchKind('findBack', -1),
 }
 
+----
+-- Undo / Redo
+Action{ name='undo', brief='undo previous action',
+  fn = function(mdl, ev)
+    -- Note: eventually this will "merge" chains of undo's
+    mdl.edit:undo()
+  end,
+}
+Action{ name='redo', brief='redo previous undo',
+  fn = function(mdl, ev)
+    -- Note: eventually this will "merge" chains of redo's
+    mdl.edit:redo()
+  end,
+}
+
+
 return M

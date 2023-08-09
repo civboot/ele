@@ -16,7 +16,6 @@ local data = require'data'
 local window = require'window'
 
 local yld = coroutine.yield
-local byte, char = string.byte, string.char
 
 local M = {} -- module
 
@@ -184,44 +183,6 @@ method(Model, 'app', function(self)
   pnt('\nExited app')
 end)
 
--- #####################
--- # Actions
--- #####################
--- # Default Bindings
-
-local A = action.Actions
--- -- Insert Mode
-bindings.BINDINGS:updateInsert{
-  ['^Q ^Q'] = A.quit,
-  ['^J']    = A.command, ['esc']   = A.command,
-  ['back']  = A.back,
-}
-
--- Command Mode
-bindings.BINDINGS:updateCommand{
-  ['^Q ^Q'] = A.quit,  ['q q'] = A.quit,
-  ['^J']  = A.command, ['esc'] = A.command,
-  i       = A.insert,
-  ['g g'] = A.goTop,   G=A.goBot,
-
-  -- direct modification
-  A=A.appendLine, C=A.changeEoL, D=A.deleteEoL,
-  o=A.newline,    I=A.changeBoL,
-  x=A.del1,
-
-  -- movement
-  h=A.left, j=A.down, k=A.up, l=A.right,
-  w=A.forword, b=A.backword,
-  ['0']=A.SoL, ['$']=A.EoL,
-  ['/']=A.search, n=A.searchNext,
-  N=A.searchPrev, ['^N']=A.searchPrev,
-
-  -- chains
-  f=A.find, F=A.findBack, d=A.delete,
-}
-for b=byte('1'),byte('9') do
-  bindings.BINDINGS.command[char(b)] = A.times
-end
 
 -- #####################
 -- # Main

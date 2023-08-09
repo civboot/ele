@@ -349,3 +349,16 @@ assertEq([[
 
   stepKeys(m, 'N'); assertEq(1, e.l); assertEq(1, e.c)
 end)
+
+UNDO_0 = '12345\n12345678\nabcdefg'
+test('undo', nil, function()
+  local m = mockedModel(1, 9, UNDO_0)
+  local e, t, s, sch = m.edit, m.term, m.statusEdit, m.searchEdit
+  assertEq('12345', tostring(t))
+
+  stepKeys(m, 'd f 3'); assertEq({1, 1}, {e.l, e.c})
+  assertEq('345', tostring(t))
+  -- stepKeys(m, 'u'); assertEq({1, 1}, {e.l, e.c})
+  -- assertEq('12345', tostring(t))
+
+end)

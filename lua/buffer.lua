@@ -72,7 +72,7 @@ method(Buffer, 'remove', function(b, ...)
   return ch
 end)
 
-Cursor.__tostring = function(c)
+CursorChange.__tostring = function(c)
   return string.format('[%s.%s -> %s.%s]', c.l1, c.c1, c.l2, c.c2)
 end
 Change.__tostring = function(c)

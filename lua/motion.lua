@@ -8,6 +8,21 @@ M.decDistance = function(s, e)
   return (s < e) and (e - 1) or (e + 1)
 end
 
+-- return whether a cursor is within a range
+M.lcWithin = function(l, c, l1, c1, l2, c2)
+  if l1 > l2 then l1, c1, l2, c2 = l2, c2, l1, c1
+  elseif l1 == l2 then
+    c1, c2 = sort2(c1, c2)
+    return l == l1 and within(c, c1, c2)
+  end
+  if within(l, l1, l2) then
+    if l == l1 then return c >= c1 end -- bottom
+    if l == l2 then return c <= c2 end -- top
+    return true
+  end
+  return false
+end
+
 local WordKind = {}; M.WordKind = WordKind -- ws, sym, let
 for c=0, 127 do
   local ch, kind = char(c), nil
