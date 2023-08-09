@@ -7,7 +7,17 @@ test('distance', nil, function()
   assertEq(5, decDistance(5, 5))
 end)
 
-test('within', nil, function()
+test('lc', nil, function()
+  assert(    lcLe(1,1,   1,3))
+  assert(    lcLe(1,2,   1,3))
+  assert(    lcLe(1,3,   1,3))
+  assert(not lcLe(1,4,   1,3))
+
+  assert(not lcGe(1,1,   1,3))
+  assert(not lcGe(1,2,   1,3))
+  assert(    lcGe(1,3,   1,3))
+  assert(    lcGe(1,4,   1,3))
+
   assert(not lcWithin(1, 0,   1, 1,   1, 5))
   assert(    lcWithin(1, 1,   1, 1,   1, 5))
   assert(    lcWithin(1, 3,   1, 1,   1, 5))

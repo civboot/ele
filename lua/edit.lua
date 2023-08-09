@@ -3,6 +3,7 @@
 require'civ':grequire()
 grequire'types'
 local gap = require'gap'
+local motion = require'motion'
 local term = require'term'; tunix = term.unix
 
 M = {}
@@ -85,54 +86,35 @@ method(Edit, 'insert', function(e, s)
   cur.l2, cur.c2, ch.cur = e.l, e.c, cur
 end)
 
--- method(Edit, 'remove', function(e, ...)
---   local cur = CursorChange{l1=e.l, c1=e.c}
---   local l, c, l2, c2 = gap.lcs(...)
--- 
--- 
---   local ch = e.buf:remove(...)
--- 
---   ch.cur = CursorChange{l1=l, c1=c, c2=c2, l2=l2}
---   if off == 0 then return end
---   l, c = l or e.l, c or e.c; local gap = e.buf.gap
---   if l < e.l or (l == e.l and c < e.c) then
---     e.l, e.c = gap:offset(off, e.l, e.c)
---   end
---   local l2, c2 = gap:offset(decAbs(off), l, c)
---   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
---   e.buf:remove(l, c, l2, c2)
--- end)
-
--- method(Edit, 'remove', function(e, ...)
---   local l1, c1 = e.l, e.c
---   local l, c, l2, c2 = gap.lcs(...)
---   local gap = e.buf.gap
---   if l < e.l or (l == e.l and c < e.c) then
---     e.l, e.c = gap:offset(off, e.l, e.c)
---   end
---   e.buf:remove(l, c, l2, c2).cur = CursorChange{l1=l1, c1=c1, c2=c2, l2=l2}
--- end)
-
--- remove offset
--- method(Edit, 'removeOff', function(e, off, l, c)
---   if off == 0 then return end
---   l, c = l or e.l, c or e.c
---   local gap = e.buf.gap
---   local l2, c2 = gap:offset(decAbs(off), l, c)
---   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
---   e:remove(l, c, l2, c2)
---   e.buf:remove(l, c, l2, c2).cur = Cursor{l1=l, c1=c, c2=c2, l2=l2}
--- end)
+method(Edit, 'remove', function(e, ...)
+  local l1, c1 = e.l, e.c
+  local l, c, l2, c2 = gap.lcs(...)
+  local g, ch = e.buf.gap
+  local len = g:len()
+  l, l2 = bound(l, 1, len), bound(l2, 1, len)
+  if not c then -- only lines specified
+    l, l2 = sort2(l, l2); assert(not c2)
+    if e.l <= l2 then
+      e.l = bound(e.l - (l2 - l), 1, len - (l2 - l1))
+    end
+    c, c2 = 1, #g:get(l2) + 1
+  else
+    l, c = g:bound(l, c);  l2, c2 = g:bound(l2, c2)
+    if motion.lcGe(e.l, e.c, l2, c2) then
+      local off = g:offsetOf(e.l, e.c, l2, c2)
+      e.l, e.c = g:offset(off, e.l, e.c)
+    end
+  end
+  ch = e.buf:remove(l, c, l2, c2)
+  ch.cur = CursorChange{l1=l1, c1=c1, l2=e.l, c2=e.c}
+end)
 
 method(Edit, 'removeOff', function(e, off, l, c)
   if off == 0 then return end
-  l, c = l or e.l, c or e.c; local gap = e.buf.gap
-  if l < e.l or (l == e.l and c < e.c) then
-    e.l, e.c = gap:offset(off, e.l, e.c)
-  end
-  local l2, c2 = gap:offset(decAbs(off), l, c)
+  l, c = l or e.l, c or e.c;
+  local l2, c2 = e.buf.gap:offset(decAbs(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
-  e.buf:remove(l, c, l2, c2).cur = CursorChange{l1=l, c1=c, c2=c2, l2=l2}
+  e:remove(l, c, l2, c2)
 end)
 
 -----------------

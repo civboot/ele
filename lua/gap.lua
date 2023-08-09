@@ -61,6 +61,7 @@ method(Gap, 'last', function(g) return g:get(g:len()) end)
 method(Gap, 'bound', function(g, l, c, len, line)
   len = len or g:len()
   l = bound(l, 1, len)
+  if not c then return l end
   return l, bound(c, 1, #(line or g:get(l)) + 1)
 end)
 

@@ -8,6 +8,18 @@ M.decDistance = function(s, e)
   return (s < e) and (e - 1) or (e + 1)
 end
 
+-- return whether l.c is <= l2.c2
+M.lcLe = function(l, c, l2, c2)
+  if l == l2 then return c <= c2 end
+  return l < l2
+end
+
+-- return whether l.c is >= l2.c2
+M.lcGe = function(l, c, l2, c2)
+  if l == l2 then return c >= c2 end
+  return l > l2
+end
+
 -- return whether a cursor is within a range
 M.lcWithin = function(l, c, l1, c1, l2, c2)
   if l1 > l2 then l1, c1, l2, c2 = l2, c2, l1, c1

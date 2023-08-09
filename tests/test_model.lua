@@ -79,12 +79,12 @@ test('back', nil, function()
     '1234567',
     'i back back x')
   local e = m.edit;
-  e.l, e.c = 1, 4
-  m:step(); assertEq(List{'1234567'}, e.canvas)
+  e.l, e.c = 1, 4 -- '4'
+  m:step(); assertEq(List{'1234567'}, e.canvas) -- i
             assertEq(1, e.l); assertEq(4, e.c)
-  m:step(); assertEq(List{'124567'}, e.canvas)
+  m:step(); assertEq(List{'124567'}, e.canvas) -- back
             assertEq(1, e.l); assertEq(3, e.c)
-  m:step(); assertEq(List{'14567'}, e.canvas)
+  m:step(); assertEq(List{'14567'}, e.canvas)  -- back
             assertEq(1, e.l); assertEq(2, e.c)
   m:step(); assertEq(List{'1x4567'}, e.canvas)
             assertEq(1, e.l); assertEq(3, e.c)
@@ -357,8 +357,9 @@ test('undo', nil, function()
   assertEq('12345', tostring(t))
 
   stepKeys(m, 'd f 3'); assertEq({1, 1}, {e.l, e.c})
-  assertEq('345', tostring(t))
-  -- stepKeys(m, 'u'); assertEq({1, 1}, {e.l, e.c})
-  -- assertEq('12345', tostring(t))
-
+    assertEq('345', tostring(t))
+  stepKeys(m, 'u'); assertEq({1, 1}, {e.l, e.c})
+    assertEq('12345', tostring(t))
+  stepKeys(m, 'U'); assertEq({1, 1}, {e.l, e.c})
+    assertEq('345', tostring(t))
 end)

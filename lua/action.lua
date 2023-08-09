@@ -52,7 +52,7 @@ M.insert = function(mdl)
   mdl.mode = 'insert'; clearState(mdl)
 end
 M.deleteEoL = function(mdl)
-  local e = mdl.edit; e.buf:remove(e.l, e.c, e.l, gap.CMAX)
+  local e = mdl.edit; e:remove(e.l, e.c, e.l, gap.CMAX)
 end
 
 ---------------------------------
@@ -346,7 +346,7 @@ Action{ name='deleteLine', brief='delete line',
   fn = function(mdl, ev)
     return doTimes(ev, function()
       local e = mdl.edit
-      e.buf:remove(e.l, e.l)
+      e:remove(e.l, e.l)
       e.l = min(1, e.l - 1)
     end)
   end,
@@ -357,9 +357,9 @@ Action{ name='deleteDone', brief='delete to movement',
     local c, c2
     if e.l == ev.l then
       c, c2 = sort2(e.c, ev.c)
-      e.buf:remove(e.l, c, ev.l, c2 - 1)
+      e:remove(e.l, c, ev.l, c2 - 1)
       if ev.c < e.c then e.c = ev.c end
-    else e.buf:remove(e.l, ev.l)
+    else e:remove(e.l, ev.l)
     end
   end
 }
@@ -382,8 +382,8 @@ Action{ name='search', brief='search for pattern',
       mdl:status('search='..search, 'stop'); window.viewRemove(e)
     else -- append to search, keep searching
       assert(#k == 1)
-      e.buf:remove(e:len(), e:len())
-      e.buf:append(search)
+      e:remove(e:len(), e:len())
+      e:append(search)
       return chain(ev, 'chain', {execRawKey='search', search=search})
     end
   end

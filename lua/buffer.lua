@@ -33,7 +33,6 @@ method(Buffer, 'changeIns', function(b, s, l, c)
   return b:addChange(Change{k='ins', s=s, l=l, c=c})
 end)
 method(Buffer, 'changeRm', function(b, s, l, c)
-  pnt('rm', s, l, c)
   return b:addChange(Change{k='rm', s=s, l=l, c=c})
 end)
 
