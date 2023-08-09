@@ -74,6 +74,12 @@ test('sub', nil, function()
   g:set(4); subTests(g)
   g:set(1); subTests(g)
   g:set(2); subTests(g)
+
+  g = Gap.new("4     It's nice to have some real data")
+  assertEq('It',     g:sub(1, 7, 1, 8))
+  assertEq("'",      g:sub(1, 9, 1, 9))
+  assertEq("s",      g:sub(1, 10, 1, 10))
+  assertEq(" nice",  g:sub(1, 11, 1, 15))
 end)
 
 -- test round-trip offset

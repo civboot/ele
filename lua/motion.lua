@@ -20,6 +20,16 @@ M.lcGe = function(l, c, l2, c2)
   return l > l2
 end
 
+-- return the top-left of two points
+M.topLeft = function(l, c, l2, c2)
+  if not c then
+    assert(not c2); return sort2(l, l2)
+  end
+  if l == l2 then return l, min(c, c2) end
+  if l <  l2 then return l, c end
+  return l2, c2
+end
+
 -- return whether a cursor is within a range
 M.lcWithin = function(l, c, l1, c1, l2, c2)
   if l1 > l2 then l1, c1, l2, c2 = l2, c2, l1, c1

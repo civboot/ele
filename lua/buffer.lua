@@ -1,5 +1,6 @@
 local civ  = require'civ':grequire()
 grequire'types'
+local motion  = require'motion'
 local gap  = require'gap'
 
 local M = {}
@@ -11,18 +12,20 @@ method(Buffer, 'new', function(s)
   }
 end)
 
-local CHANGE_UNDO = {
-  ins=function(ch, b)
-    local l2, c2 = b.gap:offset(#ch.s, ch.l, ch.c)
-    b.gap:remove(ch.l, ch.c, l2, c2)
-    return ch
-  end,
-  rm=function(ch, b)
-    b.gap:insert(ch.s, ch.l, ch.c)
-    return ch
-  end,
-}
-local CHANGE_REDO = { ins=CHANGE_UNDO.rm, rm=CHANGE_UNDO.ins, }
+local function redoRm(ch, b)
+  local len = #ch.s - 1; if len < 0 then return ch end
+  local l2, c2 = b.gap:offset(len, ch.l, ch.c)
+  b.gap:remove(ch.l, ch.c, l2, c2)
+  return ch
+end
+
+local function redoIns(ch, b)
+  b.gap:insert(ch.s, ch.l, ch.c)
+  return ch
+end
+
+local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
+local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
 method(Buffer, 'addChange', function(b, ch)
   b.changeI = b.changeI + 1; b.changeMax = b.changeI
@@ -46,6 +49,7 @@ method(Buffer, 'redo', function(b)
   if b.changeI >= b.changeMax then return nil end
   b.changeI = b.changeI + 1
   local ch = b.changes[b.changeI]
+  pnt('buffer.redo', ch, debug.getinfo(CHANGE_REDO[ch.k]))
   return CHANGE_REDO[ch.k](ch, b)
 end)
 
@@ -62,12 +66,15 @@ method(Buffer, 'insert', function(b, s, l, c)
   return ch
 end)
 method(Buffer, 'remove', function(b, ...)
-  local l, c = gap.lcsLeftTop(...)
-  l, c = b.gap:bound(l, c)
-  local ch = b.gap:sub(...)
+  local l, c, l2, c2 = gap.lcs(...)
+  local lt, ct = motion.topLeft(l, c, l2, c2)
+  lt, ct = b.gap:bound(lt, ct)
+  local ch = b.gap:sub(l, c, l2, c2)
+  pnt('  after bound', l, c, l2, c2, ':top:', lt, ct, 'sub', ch)
   ch = (type(ch)=='string' and ch) or table.concat(ch, '\n')
-  ch = b:changeRm(ch, l, c)
-  b.gap:remove(...)
+  ch = b:changeRm(ch, lt, ct)
+  pnt('b.remove', l, c, l2, c2, ch)
+  b.gap:remove(l, c, l2, c2)
   return ch
 end)
 

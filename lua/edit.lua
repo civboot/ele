@@ -72,6 +72,7 @@ method(Edit, 'append', function(e, msg)
   local l2 = e:len() + 1
   e.buf:append(msg).cursor = CursorChange{l1=e.l, c1=e.c, l2=l2, c2=1}
   e.l, e.c = l2, 1
+  pnt('?e:append', ch)
 end)
 
 method(Edit, 'insert', function(e, s)
@@ -84,6 +85,7 @@ method(Edit, 'insert', function(e, s)
     e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
   end
   cur.l2, cur.c2, ch.cur = e.l, e.c, cur
+  pnt('?e:insert', ch)
 end)
 
 method(Edit, 'remove', function(e, ...)
@@ -107,6 +109,7 @@ method(Edit, 'remove', function(e, ...)
   end
   ch = e.buf:remove(l, c, l2, c2)
   ch.cur = CursorChange{l1=l1, c1=c1, l2=e.l, c2=e.c}
+  pnt('?e:remove', ch)
 end)
 
 method(Edit, 'removeOff', function(e, off, l, c)
@@ -123,11 +126,14 @@ method(Edit, 'undo', function(e)
   local ch = e.buf:undo(); if not ch then return end
   local c = assert(ch.cur)
   e.l, e.c = c.l1, c.c1
+  pnt('?e:undo', ch)
 end)
 method(Edit, 'redo', function(e)
+  pnt('?e:redo', e.buf.gap)
   local ch = e.buf:redo(); if not ch then return end
   local c = assert(ch.cur)
   e.l, e.c = c.l1, c.c1
+  pnt(' --> ', ch, e.buf.gap)
 end)
 
 -----------------
