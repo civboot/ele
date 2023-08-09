@@ -30,7 +30,6 @@ method(Gap, 'new', function(s)
   return Gap{ bot=bot, top=List{} }
 end)
 
-
 local function lcs(l, c, l2, c2)
   if nil == l2 and nil == c2 then return l, nil, c, nil end
   if nil == l2 or  nil == c2 then error(
@@ -39,7 +38,18 @@ local function lcs(l, c, l2, c2)
   return l, c, l2, c2
 end; M.lcs = lcs
 
+-- get the left/top most location of lcs
+M.lcsLeftTop = function(...)
+  local l, c, l2, c2 = lcs(...)
+  c, c2 = c or 1, c2 or 1
+  if l == l2 then return l, min(c, c2) end
+  if l < l2  then return l, c end
+  return l2, c2
+end
+
+
 method(Gap, 'len',  function(g) return #g.bot + #g.top end)
+
 method(Gap, 'cur',  function(g) return g.bot[#g.bot]  end)
 
 method(Gap, 'get', function(g, l)
@@ -48,6 +58,11 @@ method(Gap, 'get', function(g, l)
   else return g.top[#g.top - (l - bl) + 1] end
 end)
 method(Gap, 'last', function(g) return g:get(g:len()) end)
+method(Gap, 'bound', function(g, l, c, len, line)
+  len = len or g:len()
+  l = bound(l, 1, len)
+  return l, bound(c, 1, #(line or g:get(l)) + 1)
+end)
 
 -- Get the l, c with the +/- offset applied
 
@@ -82,11 +97,9 @@ method(Gap, 'offset', function(g, off, l, c)
 end)
 
 method(Gap, 'offsetOf', function(g, l, c, l2, c2)
+  local off, len, llen = 0, g:len()
+  l, c = g:bound(l, c, len);  l2, c2 = g:bound(l2, c2, len)
   c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
-  local len = g:len()
-  l, l2 = bound(l, 1, len), bound(l2, 1, len)
-  c, c2 = bound(c, 0, #g:get(l)), bound(c2, 0, #g:get(l2))
-  local off, llen = 0
   while l < l2 do
     llen = #g:get(l) + 1
     c = bound(c, 0, llen)
@@ -125,6 +138,53 @@ method(Gap, 'set', function(g, l)
   end
 end)
 
+-- get the sub-buf (slice)
+-- of lines (l, l2) or str (l, c, l2, c2)
+method(Gap, 'sub', function(g, ...)
+  local l, c, l2, c2 = lcs(...)
+  local s = List{}
+  for i=l, min(l2,   #g.bot)        do s:add(g.bot[i]) end
+  for i=1, min((l2-l+1)-#s, #g.top) do s:add(g.top[#g.top - i + 1]) end
+  if nil == c then -- skip, only lines
+  else
+    s[1] = sub(s[1], c, CMAX)
+    if #s >= l2 - l then s[#s] = sub(s[#s], 1, c2) end
+    s = table.concat(s, '\n')
+  end
+  return s
+end)
+
+method(Gap, '__tostring', function(g)
+  local bot = concat(g.bot, '\n')
+  if #g.top == 0 then return bot  end
+  return bot..'\n'..concat(g.top, '\n')
+end)
+
+-- find the pattern starting at l/c
+method(Gap, 'find', function(g, pat, l, c)
+  c = c or 1
+  while true do
+    local s = g:get(l)
+    if not s then return nil end
+    c = s:find(pat, c); if c then return l, c end
+    l, c = l + 1, 1
+  end
+end)
+
+-- find the pattern (backwards) starting at l/c
+method(Gap, 'findBack', function(g, pat, l, c)
+  while true do
+    local s = g:get(l)
+    if not s then return nil end
+    c = motion.findBack(s, pat, c)
+    if c then return l, c end
+    l, c = l - 1, nil
+  end
+end)
+
+--------------------------
+-- Gap Mutations
+
 -- insert s (string) at l, c
 method(Gap, 'insert', function(g, s, l, c)
   g:set(l)
@@ -158,57 +218,13 @@ method(Gap, 'remove', function(g, ...)
   return rem
 end)
 
--- get the sub-buf (slice)
--- of lines (l, l2) or str (l, c, l2, c2)
-method(Gap, 'sub', function(g, ...)
-  local l, c, l2, c2 = lcs(...)
-  local s = List{}
-  for i=l, min(l2,   #g.bot)        do s:add(g.bot[i]) end
-  for i=1, min((l2-l+1)-#s, #g.top) do s:add(g.top[#g.top - i + 1]) end
-  if nil == c then -- skip, only lines
-  else
-    s[1] = sub(s[1], c, CMAX)
-    if #s >= l2 - l then s[#s] = sub(s[#s], 1, c2) end
-    s = table.concat(s, '\n')
-  end
-  return s
-end)
-
 method(Gap, 'append', function(g, s)
   g:set(); g.bot:add(s)
-end)
-
-method(Gap, '__tostring', function(g)
-  local bot = concat(g.bot, '\n')
-  if #g.top == 0 then return bot  end
-  return bot..'\n'..concat(g.top, '\n')
 end)
 
 -- extend onto gap. Mostly used internally
 method(Gap, 'extend', function(g, s)
   for l in lines(s) do g.bot:add(l) end
-end)
-
--- find the pattern starting at l/c
-method(Gap, 'find', function(g, pat, l, c)
-  c = c or 1
-  while true do
-    local s = g:get(l)
-    if not s then return nil end
-    c = s:find(pat, c); if c then return l, c end
-    l, c = l + 1, 1
-  end
-end)
-
--- find the pattern (backwards) starting at l/c
-method(Gap, 'findBack', function(g, pat, l, c)
-  while true do
-    local s = g:get(l)
-    if not s then return nil end
-    c = motion.findBack(s, pat, c)
-    if c then return l, c end
-    l, c = l - 1, nil
-  end
 end)
 
 Gap.CMAX = CMAX

@@ -33,14 +33,14 @@ method(Edit, 'offset', function(e, off)
 end)
 method(Edit, 'curLine',  function(e) return e.buf.gap:get(e.l) end)
 method(Edit, 'colEnd', function(e) return #e:curLine() + 1 end)
-method(Edit, 'lastLine', function(e) return e.buf.gap:get(e.buf.gap:len()) end)
 method(Edit, 'len',     function(e) return e.buf.gap:len() end)
+method(Edit, 'lastLine', function(e) return e.buf.gap:get(e:len()) end)
 -- bound the column for the line
 method(Edit, 'boundCol',  function(e, c, l)
   return bound(c, 1, #e.buf.gap:get(l or e.l) + 1)
 end)
 method(Edit, 'append', function(e, msg)
-  e.buf.gap:append(msg); e.l, e.c = e:len(), 1
+  e.buf:append(msg); e.l, e.c = e:len(), 1
 end)
 method(Edit, 'trailWs', function(e, msg)
   local g = e.buf.gap
@@ -67,7 +67,7 @@ end)
 
 -- These are going to track state/cursor/etc
 method(Edit, 'insert', function(e, s)
-  local c = e.c; e.buf.gap:insert(s, e.l, c - 1);
+  local c = e.c; e.buf:insert(s, e.l, c - 1);
   pnt(string.format('insert %q l=%s c=%s', s, e.l, e.c))
   e.l, e.c = e.buf.gap:offset(#s, e.l, c)
   pnt('   ', e.l, e.c)
@@ -87,7 +87,7 @@ method(Edit, 'removeOff', function(e, off, l, c)
   end
   local l2, c2 = gap:offset(decAbs(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
-  gap:remove(l, c, l2, c2)
+  e.buf:remove(l, c, l2, c2)
 end)
 
 -- draw to term (l, c, w, h)

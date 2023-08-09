@@ -4,22 +4,19 @@ local gap  = require'gap'
 local M = {}
 
 M.ViewId = 0
-M.nextViewId = function() M.ViewId = M.ViewId + 1; return M.ViewId end
+M.ChangeId = 0
+M.nextViewId   = function() M.ViewId   = M.ViewId   + 1; return M.ViewId   end
+M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
--- Id used for views and edit
--- Event object, sent to update method which can emit new events
-M.Event = civ.newTy('Event')
-M.Event.__index = civ.methIndex
-civ.constructor(M.Event, function(ty_, ev)
-  assert(ev[1], "missing event name as index 1: " + tfmt(ev))
-end)
-
-M.Change = struct('Diff', {
-  {'l', Num},  {'c', Num},                -- start of action
-  {'l2', Num, false}, {'c2', Num, false}, -- (optional) end
-  {'value', Str, false}, -- value removed in action
+-- Buffer and sub-types
+M.Cursor = struct('CursorChange', {
+  {'l1', Num}, {'c1', Num}, {'l2', Num}, {'c2', Num},
 })
-
+M.Change = struct('Change', {
+  {'k', Str}, -- kind: ins/rm
+  {'s', Str}, {'l', Num}, {'c', Num},
+  {'cur', CursorChange, false},
+})
 M.Buffer = struct('Buffer', {
   {'gap', gap.Gap},
 
