@@ -76,6 +76,8 @@ M.BINDINGS:updateCommand{
   w=A.forword, b=A.backword,
   H=A.SoL, L=A.EoL,
   J={'down', times=15}, K={'up', times=15},
+
+  -- search
   ['/']=A.search, n=A.searchNext,
   N=A.searchPrev, ['^N']=A.searchPrev,
 
@@ -92,12 +94,17 @@ end
 assertEq(M.BINDINGS.command.K, {'up', times=15})
 
 -- default bindings for vim-mode
+-- Ele has more consistent bindings than vim:
+-- * Movement (including large movement) stick to hjkl
+--   In vim they seem to be almost randomly chosen.
+-- * Otherwise if a key does something, it's capital does it's opposite when
+--   possible, i.e. u/U for undo/redo
 M.VIM = Bindings.default()
-
 M.VIM:updateCommand{
-  -- SoL/EoL movement a bit different
+  -- In Ele, large movement commands use hjkl.
   ['0']=A.SoL, ['$']=A.EoL,
-  H=false, L=false,
+  H=false, L=false, J=false, L=false,
+  ['^D']={'down', times=15}, ['^U']={'up', times=15},
 
   -- redo slightly different
   ['^R']=A.redo, U=false,
