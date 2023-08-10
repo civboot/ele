@@ -1,5 +1,5 @@
 package = "ele"
-version = "0.1.0-1"
+version = "0.1.0-2"
 source = {
   url = "git+ssh://git@github.com/civboot/ele.git"
 }
@@ -13,7 +13,8 @@ description = {
   license = "UNLICENSE"
 }
 dependencies = {
-   "lua ~> 5.3"
+  "lua ~> 5.3",
+  "civ > 0.1.0",
 }
 build = {
   type = "builtin",

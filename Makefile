@@ -13,3 +13,8 @@ test:
 run:
 	LUA_PATH=${LP} lua lua/model.lua
 
+installlocal:
+	luarocks make rockspec --local
+
+uploadrock:
+	source ~/.secrets && luarocks upload rockspec --api-key=${ROCKAPI}
