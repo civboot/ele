@@ -1,7 +1,7 @@
 
 require'civ':grequire()
-grequire'gap'
-local buffer = require'buffer'
+grequire'ele.gap'
+local buffer = require'ele.buffer'
 
 test('undoIns', nil, function()
   local b = Buffer.new(''); local g = b.gap

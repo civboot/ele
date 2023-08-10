@@ -1,8 +1,7 @@
 
 all: test
 
-# export LUA_PATH = "${LUA_PATH};../civc/lua/?.lua"
-LP = "./lua/?.lua;../civlib/?.lua;${LUA_PATH}"
+LP = "./?.lua;../civlib/?.lua;${LUA_PATH}"
 
 test:
 	mkdir -p out/

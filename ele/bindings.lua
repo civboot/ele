@@ -1,8 +1,8 @@
 -- #####################
 -- # Keyboard Bindings
-grequire'types'
-local term = require'term'
-local A = require'action'.Actions
+grequire'ele.types'
+local term = require'ele.term'
+local A = require'ele.action'.Actions
 local byte, char = string.byte, string.char
 
 local M = {}

@@ -1,5 +1,5 @@
 require'civ':grequire()
-grequire'motion'
+grequire'ele.motion'
 
 test('distance', nil, function()
   assertEq(3, decDistance(1, 4))

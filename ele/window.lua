@@ -1,6 +1,6 @@
 local civ  = require'civ':grequire()
-grequire'types'
-local term = require'term'
+grequire'ele.types'
+local term = require'ele.term'
 
 local M = {}
 

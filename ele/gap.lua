@@ -13,7 +13,7 @@ local M = {} -- module
 
 require'civ':grequire()
 local sub = string.sub
-local motion = require'motion'
+local motion = require'ele.motion'
 
 local CMAX = 999; M.CMAX = CMAX
 local Gap = struct('Gap', {

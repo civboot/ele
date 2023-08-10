@@ -1,10 +1,10 @@
 local civ = require'civ':grequire()
 civ.TESTING = true
-local model = grequire'model'
-local term = require'term'; local tunix = term.unix
-local types = require'types'
-local window = require'window'
-local data = require'data'
+local model = grequire'ele.model'
+local term = require'ele.term'; local tunix = term.unix
+local types = require'ele.types'
+local window = require'ele.window'
+local data = require'ele.data'
 
 local add = table.insert
 

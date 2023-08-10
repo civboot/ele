@@ -3,17 +3,17 @@
 -- Implements the core app
 
 require'civ':grequire()
-grequire'types'
-local action = require'action'
-local posix = require'posix'
+grequire'ele.types'
 local civix = require'civ.unix'
-local term = require'term'
-local gap  = require'gap'
-local edit = require'edit'
-local buffer = require'buffer'
-local bindings = require'bindings'
-local data = require'data'
-local window = require'window'
+local posix = require'posix'
+local action = require'ele.action'
+local term = require'ele.term'
+local gap  = require'ele.gap'
+local edit = require'ele.edit'
+local buffer = require'ele.buffer'
+local bindings = require'ele.bindings'
+local data = require'ele.data'
+local window = require'ele.window'
 
 local yld = coroutine.yield
 

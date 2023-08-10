@@ -1,7 +1,7 @@
 local civ  = require'civ':grequire()
-grequire'types'
-local motion  = require'motion'
-local gap  = require'gap'
+grequire'ele.types'
+local motion  = require'ele.motion'
+local gap  = require'ele.gap'
 
 local M = {}
 

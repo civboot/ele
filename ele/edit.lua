@@ -1,10 +1,10 @@
 -- #####################
 -- # Edit struct
 require'civ':grequire()
-grequire'types'
-local gap = require'gap'
-local motion = require'motion'
-local term = require'term'; tunix = term.unix
+grequire'ele.types'
+local gap = require'ele.gap'
+local motion = require'ele.motion'
+local term = require'ele.term'; tunix = term.unix
 
 M = {}
 
