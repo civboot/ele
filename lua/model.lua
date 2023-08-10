@@ -6,7 +6,7 @@ require'civ':grequire()
 grequire'types'
 local action = require'action'
 local posix = require'posix'
-local shix = require'shix'
+local civix = require'civ.unix'
 local term = require'term'
 local gap  = require'gap'
 local edit = require'edit'
@@ -75,7 +75,7 @@ method(Model, 'status', function(self, msg, kind)
   pnt('Status: ', msg)
 end)
 method(Model, 'spent', function(self)
-  return shix.epoch() - self.start
+  return civix.epoch() - self.start
 end)
 method(Model, 'loopReturn', function(self)
   -- local spent = self:spent()
@@ -161,7 +161,7 @@ end)
 --   * step: run all pieces
 method(Model, 'step', function(self)
   local key = self.inputCo()
-  self.start = shix.epoch()
+  self.start = civix.epoch()
   if key == '^C' then
     pnt('\nctl+C received, ending\n')
     return false

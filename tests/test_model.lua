@@ -1,7 +1,6 @@
 local civ = require'civ':grequire()
 civ.TESTING = true
 local model = grequire'model'
-local shix = require'shix'
 local term = require'term'; local tunix = term.unix
 local types = require'types'
 local window = require'window'
