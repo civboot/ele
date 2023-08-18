@@ -234,12 +234,12 @@ end
 ------------------------------------------------------------------------
 -- Fake: a fake terminal for testing
 local FakeTerm = civ.newTy(); M.FakeTerm = FakeTerm
-constructor(FakeTerm, function(ty_, h, w)
+civ.constructor(FakeTerm, function(ty_, h, w)
   local t = setmetatable({}, ty_); FakeTerm.init(t, h, w)
   return t
 end)
 FakeTerm.__index = civ.methIndex
-methods(FakeTerm, {
+civ.methods(FakeTerm, {
   clear=function(t)
     t:golc(1, 1)
     for l=1, t.h do

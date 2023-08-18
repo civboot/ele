@@ -197,13 +197,4 @@ M.testModel = function(t, inp)
   return mdl, mdl.statusEdit, mdl.edit
 end
 
-local function main()
-  local inp = term.unix.input()
-  pnt"## Running ('q q' to quit)"
-  local mdl = M.testModel(term.UnixTerm, inp)
-  mdl:app()
-end
-
-if not civ.TESTING then main() end
-
 return M

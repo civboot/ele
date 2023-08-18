@@ -11,7 +11,7 @@ test:
 	LUA_PATH=${LP} lua tests/test_model.lua
 
 run:
-	LUA_PATH=${LP} lua lua/model.lua
+	LUA_PATH=${LP} lua ele.lua
 
 installlocal:
 	luarocks make rockspec --local
