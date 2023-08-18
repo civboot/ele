@@ -1,5 +1,5 @@
 local civ  = require'civ':grequire()
-grequire'ele.types'
+local T = require'ele.types'
 local motion  = require'ele.motion'
 local gap  = require'ele.gap'
 
@@ -20,10 +20,10 @@ end
 local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
 local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
-civ.methods(Buffer, {
+methods(T.Buffer, {
 new=function(s)
-  return Buffer{
-    gap=gap.Gap.new(s),
+  return T.Buffer{
+    gap=T.Gap.new(s),
     changes=List{}, changeI=0, changeMax=0,
   }
 end,
@@ -35,11 +35,11 @@ addChange=function(b, ch)
 end,
 
 changeIns=function(b, s, l, c)
-  return b:addChange(Change{k='ins', s=s, l=l, c=c})
+  return b:addChange(T.Change{k='ins', s=s, l=l, c=c})
 end,
 
 changeRm=function(b, s, l, c)
-  return b:addChange(Change{k='rm', s=s, l=l, c=c})
+  return b:addChange(T.Change{k='rm', s=s, l=l, c=c})
 end,
 
 undo=function(b)
@@ -81,10 +81,10 @@ remove=function(b, ...)
 end,
 }) -- END Buffer methods
 
-CursorChange.__tostring = function(c)
+T.CursorChange.__tostring = function(c)
   return string.format('[%s.%s -> %s.%s]', c.l1, c.c1, c.l2, c.c2)
 end
-Change.__tostring = function(c)
+T.Change.__tostring = function(c)
   local cur = c.cur and (' '..tostring(c.cur)) or ''
   return string.format('{%s %s.%s %q%s}', c.k, c.l, c.c, c.s, cur)
 end

@@ -1,7 +1,7 @@
 local civ  = require'civ':grequire()
 local gap  = require'ele.gap'
 
-local M = {}
+local M = {Gap=gap.Gap}
 
 M.ViewId = 0
 M.ChangeId = 0

@@ -1,6 +1,8 @@
 local civ  = require'civ':grequire()
-grequire'ele.types'
+local T = require'ele.types'
 local term = require'ele.term'
+
+local Window, Edit = T.Window, T.Edit
 
 local M = {}
 
@@ -38,7 +40,7 @@ end
 -- Replace the view (Edit, Window) object with a new one
 M.replaceView = function(mdl, view, new)
   local container = view.container
-  if ty(container) == Model then
+  if ty(container) == T.Model then
     container.view = view
   else container[indexOf(container, view)] = new
   end
@@ -54,7 +56,7 @@ end
 M.viewRemove = function(view)
   while true do
     local c = view.container; if not c then return end
-    if ty(c) == Model then assert(false) end
+    if ty(c) == T.Model then assert(false) end
     table.remove(c, indexOf(c, view))
     view.container = nil
     if #c > 0 then
@@ -69,7 +71,7 @@ end
 M.wrapWindow = function(w)
   local container = assert(w.container)
   local wrapped = Window.new(container); wrapped[1] = w
-  if ty(container) == Model then container.view = wrapped
+  if ty(container) == T.Model then container.view = wrapped
   else container[indexOf(container, w)] = wrapped end
   w.container = wrapped
   return wrapped
@@ -80,7 +82,7 @@ end
 -- leftTop: if true, add goes at left|top, else right|bot
 M.windowAdd = function(view, add, split, leftTop)
   assert(not add.container)
-  if ty(view) == Model then assert(false) end
+  if ty(view) == T.Model then assert(false) end
   local other = (split == 'h' and 'v') or 'h'
   if (ty(view) ~= Window) or view.splitkind == other then
     view = M.wrapWindow(view)
@@ -97,7 +99,7 @@ end
 Window.__index = listIndex
 method(Window, 'new', function(container)
   return Window{
-    id=nextViewId(),
+    id=T.nextViewId(),
     container=container,
     tl=-1, tc=-1,
     th=-1, tw=-1,
@@ -137,39 +139,40 @@ local function drawSepV(term, l, c, h, sep)
   end
 end
 
+methods(Window, {
 -- return the maximum forced dimension
-method(Window, 'forceDimMax', function(w, dimFn)
+forceDimMax=function(w, dimFn)
   local fd = 0; for _, ch in ipairs(w) do
     fd = max(fd, ch[dimFn](ch))
   end; return fd
-end)
+end,
 -- return the forced dimension and the number of forceDim children
 -- sc: if true, return 0 at first non-forceWidth child
-method(Window, 'forceDim', function(w, dimFn, sc)
+forceDim=function(w, dimFn, sc)
   local fd, n = 0, 0; for _, ch in ipairs(w) do
     local d = ch[dimFn](ch)
     if d ~= 0 then n, fd = n + 1, fd + d
     elseif sc then return 0, 0 end
   end; return fd, n
-end)
-method(Window, 'forceWidth',  function(w)
+end,
+forceWidth= function(w)
   if w.kind == 'h' then return w:forceDimMax('forceWidth') end
   return  w:forceDim('forceWidth', true)
-end)
-method(Window, 'forceHeight', function(w, dimFn)
+end,
+forceHeight=function(w, dimFn)
   if w.splitkind == 'v' then return w:forceDimMax('forceHeight') end
   return  w:forceDim('forceHeight', true)
-end)
+end,
 
-method(Window, 'period', function(w, size, forceDim, sep)
+period=function(w, size, forceDim, sep)
   assert(#w >= 1); sep = sep * (#w - 1)
   local fd, n = w:forceDim(forceDim, false)
   if fd + sep > size then return 0 end
   local varDim = math.floor((size - fd - sep) / (#w - n))
   return varDim
-end)
+end,
 
-method(Window, 'draw', function(w, term, isRight)
+draw=function(w, term, isRight)
   assert(#w > 0, "Drawing empty window")
   if not w.splitkind then
     assert(#w == 1)
@@ -206,6 +209,7 @@ method(Window, 'draw', function(w, term, isRight)
       end
     end
   end
-end)
+end,
+}) -- END Window methods
 
 return M

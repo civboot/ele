@@ -1,8 +1,8 @@
 local civ = require'civ':grequire()
 civ.TESTING = true
-local model = grequire'ele.model'
+local model = require'ele.model'
 local term = require'ele.term'; local tunix = term.unix
-local types = require'ele.types'
+local T = require'ele.types'
 local window = require'ele.window'
 local data = require'ele.data'
 
@@ -25,7 +25,7 @@ end
 
 test('edit (only)', nil, function()
   local t = term.FakeTerm(1, 4); assert(t)
-  local e = Edit.new(nil, Buffer.new("1234567\n123\n12345\n"))
+  local e = T.Edit.new(nil, T.Buffer.new("1234567\n123\n12345\n"))
   e.tl, e.tc, e.th, e.tw = 1, 1, 1, 4
   e:draw(t, true); assertEq(List{'1234'}, e.canvas)
   e.th, e.tw = 2, 4; t:init(2, 4)
@@ -37,8 +37,8 @@ test('edit (only)', nil, function()
 end)
 
 local function mockedModel(h, w, s, inputs)
-  types.ViewId = 0
-  local mdl = Model.new(
+  T.ViewId = 0
+  local mdl = T.Model.new(
     term.FakeTerm(h, w),
     mockInputs(inputs or ''):iterV())
   local e = mdl:newEdit(nil, s)

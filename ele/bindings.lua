@@ -1,11 +1,12 @@
 -- #####################
 -- # Keyboard Bindings
-grequire'ele.types'
+local T = require'ele.types'
 local term = require'ele.term'
 local A = require'ele.action'.Actions
 local byte, char = string.byte, string.char
 
 local M = {}
+local Bindings, Action = T.Bindings, T.Action
 
 local BIND_TYPES = {
   Action,
@@ -19,6 +20,7 @@ end,
 _update=function(b, mode, bindings, checker)
   local bm = b[mode]
   for keys, act in pairs(bindings) do
+    pnt('?? act', act)
     if act then
       if ty(act) == Action then assertEq(ty(act.fn), Fn)
       else

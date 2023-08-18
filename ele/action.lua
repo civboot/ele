@@ -1,9 +1,11 @@
 local civ  = require'civ':grequire()
-grequire'ele.types'
+local T = require'ele.types'
 local gap = require'ele.gap'
 local term = require'ele.term'
 local motion = require'ele.motion'
 local window = require'ele.window'
+
+local Action = T.Action
 
 local M = {}
 M.Actions = {}
