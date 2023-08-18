@@ -5,13 +5,6 @@ local gap  = require'ele.gap'
 
 local M = {}
 
-method(Buffer, 'new', function(s)
-  return Buffer{
-    gap=gap.Gap.new(s),
-    changes=List{}, changeI=0, changeMax=0,
-  }
-end)
-
 local function redoRm(ch, b)
   local len = #ch.s - 1; if len < 0 then return ch end
   local l2, c2 = b.gap:offset(len, ch.l, ch.c)
@@ -27,43 +20,56 @@ end
 local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
 local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
-method(Buffer, 'addChange', function(b, ch)
+civ.methods(Buffer, {
+new=function(s)
+  return Buffer{
+    gap=gap.Gap.new(s),
+    changes=List{}, changeI=0, changeMax=0,
+  }
+end,
+
+addChange=function(b, ch)
   b.changeI = b.changeI + 1; b.changeMax = b.changeI
   b.changes[b.changeI] = ch
   return ch
-end)
-method(Buffer, 'changeIns', function(b, s, l, c)
-  return b:addChange(Change{k='ins', s=s, l=l, c=c})
-end)
-method(Buffer, 'changeRm', function(b, s, l, c)
-  return b:addChange(Change{k='rm', s=s, l=l, c=c})
-end)
+end,
 
-method(Buffer, 'undo', function(b)
+changeIns=function(b, s, l, c)
+  return b:addChange(Change{k='ins', s=s, l=l, c=c})
+end,
+
+changeRm=function(b, s, l, c)
+  return b:addChange(Change{k='rm', s=s, l=l, c=c})
+end,
+
+undo=function(b)
   if b.changeI < 1 then return nil end
   local ch = b.changes[b.changeI]
   b.changeI = b.changeI - 1
   return CHANGE_UNDO[ch.k](ch, b)
-end)
-method(Buffer, 'redo', function(b)
+end,
+
+redo=function(b)
   if b.changeI >= b.changeMax then return nil end
   b.changeI = b.changeI + 1
   local ch = b.changes[b.changeI]
   return CHANGE_REDO[ch.k](ch, b)
-end)
+end,
 
-method(Buffer, 'append', function(b, s)
+append=function(b, s)
   local ch = b:changeIns(s, b.gap:len() + 1, 1)
   b.gap:append(s)
   return ch
-end)
-method(Buffer, 'insert', function(b, s, l, c)
+end,
+
+insert=function(b, s, l, c)
   l, c = b.gap:bound(l, c)
   local ch = b:changeIns(s, l, c)
   b.gap:insert(s, l, c)
   return ch
-end)
-method(Buffer, 'remove', function(b, ...)
+end,
+
+remove=function(b, ...)
   local l, c, l2, c2 = gap.lcs(...)
   local lt, ct = motion.topLeft(l, c, l2, c2)
   lt, ct = b.gap:bound(lt, ct)
@@ -72,7 +78,8 @@ method(Buffer, 'remove', function(b, ...)
   ch = b:changeRm(ch, lt, ct)
   b.gap:remove(l, c, l2, c2)
   return ch
-end)
+end,
+}) -- END Buffer methods
 
 CursorChange.__tostring = function(c)
   return string.format('[%s.%s -> %s.%s]', c.l1, c.c1, c.l2, c.c2)
