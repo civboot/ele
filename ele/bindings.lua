@@ -80,8 +80,8 @@ Bindings.DEFAULT:updateCommand{
   -- movement
   h=A.left, j=A.down, k=A.up, l=A.right,
   w=A.forword, b=A.backword,
-  H=A.SoL, L=A.EoL,
-  J={'down', times=15}, K={'up', times=15},
+  ['$']=A.EoL,  -- Note: SoL implemented as part of '0'
+  ['^D']={'down', times=15}, ['^U']={'up', times=15},
 
   -- search
   ['/']=A.search, n=A.searchNext,
@@ -91,28 +91,29 @@ Bindings.DEFAULT:updateCommand{
   f=A.find, F=A.findBack, d=A.delete,
 
   -- undo/redo
-  u=A.undo, U=A.redo,
+  u=A.undo,  ['^R']=A.redo,
 }
 for b=byte('0'),byte('9') do
   Bindings.DEFAULT.command[char(b)] = A.times
 end
 
-assertEq(Bindings.DEFAULT.command.K, {'up', times=15})
+assertEq(Bindings.DEFAULT.command['^U'], {'up', times=15})
 
--- default bindings for vim-mode
--- Ele has more consistent bindings than vim:
+-- bindings for 'simple' mode.
+--
+-- If you don't know vim, you may prefer this mode which has more consistent
+-- movement keys etc.
 -- * Movement (including large movement) stick to hjkl
 --   In vim they seem to be almost randomly chosen.
 -- * Otherwise if a key does something, it's capital does it's opposite when
 --   possible, i.e. u/U for undo/redo
-M.VIM = Bindings.default()
-M.VIM:updateCommand{
+M.SIMPLE = Bindings.default()
+M.SIMPLE:updateCommand{
   -- In Ele, large movement commands use hjkl.
-  ['0']=A.SoL, ['$']=A.EoL,
-  H=false, L=false, J=false, L=false,
-  ['^D']={'down', times=15}, ['^U']={'up', times=15},
+  H=A.SoL, L=A.EoL,
+  J={'down', times=15}, K={'up', times=15},
 
   -- redo slightly different
-  ['^R']=A.redo, U=false,
+  U=A.redo,
 }
 return M

@@ -49,7 +49,7 @@ end
 
 test('bindings', nil, function()
   local m = mockedModel(5, 5)
-  assertEq(m:getBinding('K'), {'up', times=15})
+  assertEq(m:getBinding('^U'), {'up', times=15})
 end)
 
 
@@ -114,7 +114,7 @@ test('move', nil, function()
   m:step(); assertEq(3, e.l); assertEq(3, e.c) -- j '3' (l 3)
 
   -- now test boundaries
-  m.inputCo = mockInputs('j L k l'):iterV() -- down RIGHT up right
+  m.inputCo = mockInputs('j $ k l'):iterV() -- down RIGHT up right
   m:step(); assertEq(3, e.l); assertEq(3, e.c) -- '\n' (l 3 EOF)
   m:step(); assertEq(3, e.l); assertEq(6, e.c) -- '\n' (l 3 EOF)
   m:step(); assertEq(2, e.l); assertEq(6, e.c) -- '\n' (l 2)
@@ -132,7 +132,7 @@ test('move', nil, function()
                assertEq(List{'123x'}, e.canvas)
 
   -- now test multi-movement
-  stepKeys(m, '^J K'); assertEq({1, 5}, {e.l, e.c})
+  stepKeys(m, '^J ^U'); assertEq({1, 5}, {e.l, e.c})
 end)
 
 local function splitSetup(m, kind)
@@ -273,11 +273,11 @@ test('modLine', nil, function()
     assertEq('insert', m.mode)
   stepKeys(m, 'a b c ^J'); assertEq(1, e.l); assertEq(7, e.c)
     assertEq('123abc\n8909876', tostring(t))
-  stepKeys(m, 'H'); assertEq(1, e.l); assertEq(1, e.c)
-  stepKeys(m, 'L'); assertEq(1, e.l); assertEq(7, e.c)
+  stepKeys(m, '0'); assertEq(1, e.l); assertEq(1, e.c)
+  stepKeys(m, '$'); assertEq(1, e.l); assertEq(7, e.c)
   stepKeys(m, 'o h i ^J'); assertEq(2, e.l); assertEq(3, e.c)
     assertEq('123abc\nhi', tostring(t))
-  stepKeys(m, 'k H x x'); assertEq(1, e.l); assertEq(1, e.c)
+  stepKeys(m, 'k 0 x x'); assertEq(1, e.l); assertEq(1, e.c)
     assertEq('3abc\nhi', tostring(t))
 end)
 
@@ -368,6 +368,6 @@ test('undo', nil, function()
     assertEq('345', tostring(t))
   stepKeys(m, 'u'); assertEq({1, 1}, {e.l, e.c})
     assertEq('12345', tostring(t))
-  stepKeys(m, 'U'); assertEq({1, 1}, {e.l, e.c})
+  stepKeys(m, '^R'); assertEq({1, 1}, {e.l, e.c})
     assertEq('345', tostring(t))
 end)

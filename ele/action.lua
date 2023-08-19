@@ -289,6 +289,9 @@ Action{ name='goBot', brief='go to bottom of buf',
 Action{ name='times',
   brief='do an action multiple times (set with 1-9)',
   fn = function(mdl, ev)
+    if '0' == ev.key and not ev.times then
+      return chain(ev, 'SoL')
+    end
     return chain(ev, 'chain', {
       times=((ev.times or 0) * 10) + tonumber(ev.key)
     })
@@ -353,7 +356,40 @@ Action{ name='deleteLine', brief='delete line',
     end)
   end,
 }
-Action{ name='deleteDone', brief='delete to movement',
+Action{ name='deleteDone', brief='delete to movement (done)',
+  fn = function(mdl, ev)
+    local e = mdl.edit, assert(ev.l and ev.c)
+    local c, c2
+    if e.l == ev.l then
+      c, c2 = sort2(e.c, ev.c)
+      e:remove(e.l, c, ev.l, c2 - 1)
+      if ev.c < e.c then e.c = ev.c end
+    else e:remove(e.l, ev.l)
+    end
+  end
+}
+
+----
+-- Change
+Action{ name='change', brief='change to movement',
+  fn = function(mdl, ev)
+    if ev.exec == 'changeDone' and ev.key == 'c' then
+      return chain(ev, 'changeDone')
+    end
+    return chain(ev, 'chain', {exec='changeDone'})
+  end
+}
+Action{ name='changeLine', brief='change line',
+  fn = function(mdl, ev)
+    return doTimes(ev, function()
+      local e = mdl.edit
+      e:remove(e.l, e.l)
+      e.l = min(1, e.l - 1)
+      M.insert(mdl)
+    end)
+  end,
+}
+Action{ name='changeDone', brief='change to movement (done)',
   fn = function(mdl, ev)
     local e = mdl.edit, assert(ev.l and ev.c)
     local c, c2

@@ -45,7 +45,7 @@ new=function(term_, inputCo)
 end,
 -- Call after term is setup
 init=function(m)
-  m.h, m.w = m.term:size()
+  m.th, m.tw = m.term:size()
   m:draw()
 end,
 
@@ -116,8 +116,8 @@ end,
 -- #####################
 --   * draw
 draw=function(mdl)
-  mdl.h, mdl.w = mdl.term:size()
-  update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
+  mdl.th, mdl.tw = mdl.term:size()
+  update(mdl.view, {tl=1, tc=1, th=mdl.th, tw=mdl.tw})
   mdl.view:draw(mdl.term, true)
   mdl.edit:drawCursor(mdl.term)
 end,
