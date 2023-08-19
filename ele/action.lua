@@ -299,6 +299,23 @@ Action{ name='times',
 }
 
 ----
+-- Replace Character
+Action{ name='replace1', brief='replace character',
+  fn = function(mdl, ev)
+    return chain(ev, 'chain', {execRawKey='replaceChar'})
+  end
+}
+Action{ name='replaceChar', brief='(called by replace1)',
+  fn = function(mdl, ev)
+    local ch, e = ev.key, mdl.edit; assert(ev.rawKey)
+    if #ch ~= 1 then
+      mdl:status('replace='..ch, 'invalid')
+      return
+    end
+    e:replace(ev.key, e.l, e.c, e.l, e.c)
+  end,
+}
+----
 -- Find Character
 Action{ name='find', brief='find next character',
   fn = function(mdl, ev)
@@ -356,17 +373,18 @@ Action{ name='deleteLine', brief='delete line',
     end)
   end,
 }
-Action{ name='deleteDone', brief='delete to movement (done)',
-  fn = function(mdl, ev)
-    local e = mdl.edit, assert(ev.l and ev.c)
-    local c, c2
-    if e.l == ev.l then
-      c, c2 = sort2(e.c, ev.c)
-      e:remove(e.l, c, ev.l, c2 - 1)
-      if ev.c < e.c then e.c = ev.c end
-    else e:remove(e.l, ev.l)
-    end
+local function _deleteDone(mdl, ev)
+  local e = mdl.edit, assert(ev.l and ev.c)
+  local c, c2
+  if e.l == ev.l then
+    c, c2 = sort2(e.c, ev.c)
+    e:remove(e.l, c, ev.l, c2 - 1)
+    if ev.c < e.c then e.c = ev.c end
+  else e:remove(e.l, ev.l)
   end
+end
+Action{ name='deleteDone', brief='delete to movement (done)',
+  fn = function(mdl, ev) _deleteDone(mdl, ev) end
 }
 
 ----
@@ -391,14 +409,8 @@ Action{ name='changeLine', brief='change line',
 }
 Action{ name='changeDone', brief='change to movement (done)',
   fn = function(mdl, ev)
-    local e = mdl.edit, assert(ev.l and ev.c)
-    local c, c2
-    if e.l == ev.l then
-      c, c2 = sort2(e.c, ev.c)
-      e:remove(e.l, c, ev.l, c2 - 1)
-      if ev.c < e.c then e.c = ev.c end
-    else e:remove(e.l, ev.l)
-    end
+    _deleteDone(mdl, ev)
+    M.insert(mdl)
   end
 }
 

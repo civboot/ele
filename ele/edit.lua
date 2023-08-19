@@ -86,6 +86,7 @@ insert=function(e, s)
     e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
   end
   cur.l2, cur.c2, ch.cur = e.l, e.c, cur
+  return ch
 end,
 
 remove=function(e, ...)
@@ -109,6 +110,7 @@ remove=function(e, ...)
   end
   ch = e.buf:remove(l, c, l2, c2)
   ch.cur = CursorChange{l1=l1, c1=c1, l2=e.l, c2=e.c}
+  return ch
 end,
 
 removeOff=function(e, off, l, c)
@@ -117,6 +119,16 @@ removeOff=function(e, off, l, c)
   local l2, c2 = e.buf.gap:offset(decAbs(off), l, c)
   if off < 0 then l, l2, c, c2 = l2, l, c2, c end
   e:remove(l, c, l2, c2)
+end,
+
+replace=function(e, s, ...)
+  local l, c = gap.lcs(...)
+  assert(e.l == l and (not c or e.c == c))
+  local chR = e:remove(...); local cR = chR.cur
+  local chI = e:insert(s)  ; local cI = chI.cur
+  e.l, e.c = cR.l2, cR.c2
+  cI.l2, cI.c2 = e.l, e.c
+  return {chI, chR}
 end,
 
 -----------------

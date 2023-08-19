@@ -311,6 +311,20 @@ test('deleteChain', nil, function()
 end)
 
 ------------
+-- Test c delete
+test('change', nil, function()
+  local m = mockedModel(1, 12, '12 34 567')
+  local e, t = m.edit, m.term; e.l, e.c = 1, 4
+  stepKeys(m, 'c w'); assertEq(1, e.l); assertEq(4, e.c)
+    assertEq('12 567', tostring(t))
+    assertEq('insert', m.mode)
+  stepKeys(m, 'a b c space ^J'); assertEq(1, e.l); assertEq(8, e.c)
+    assertEq('12 abc 567', tostring(t))
+  stepKeys(m, 'r Z'); assertEq(1, e.l); assertEq(8, e.c)
+    assertEq('12 abc Z67', tostring(t))
+end)
+
+------------
 -- Test /search
 SEARCH_0 = '12345\n12345678\nabcdefg'
 test('modLine', nil, function()

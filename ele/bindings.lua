@@ -75,7 +75,7 @@ Bindings.DEFAULT:updateCommand{
   -- direct modification
   A=A.appendLine, C=A.changeEoL, D=A.deleteEoL,
   o=A.newline,    I=A.changeBoL,
-  x=A.del1,
+  x=A.del1,       r=A.replace1,
 
   -- movement
   h=A.left, j=A.down, k=A.up, l=A.right,
@@ -88,7 +88,7 @@ Bindings.DEFAULT:updateCommand{
   N=A.searchPrev, ['^N']=A.searchPrev,
 
   -- chains
-  f=A.find, F=A.findBack, d=A.delete,
+  f=A.find, F=A.findBack, d=A.delete, c=A.change,
 
   -- undo/redo
   u=A.undo,  ['^R']=A.redo,
