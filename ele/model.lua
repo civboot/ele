@@ -73,6 +73,7 @@ status=function(self, msg, kind)
   kind = kind and string.format('[%s] ', kind) or '[status] '
   msg = kind .. msg
   local e = self.statusEdit
+  e:changeStart()
   assert(not msg:find('\n')); e:append(msg)
   pnt('Status: ', msg)
 end,

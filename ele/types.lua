@@ -9,22 +9,20 @@ M.nextViewId   = function() M.ViewId   = M.ViewId   + 1; return M.ViewId   end
 M.nextChangeId = function() M.ChangeId = M.ChangeId + 1; return M.ChangeId end
 
 -- Buffer and sub-types
-M.CursorChange = struct('CursorChange', {
+M.ChangeStart = struct('ChangeStart', {
   {'l1', Num}, {'c1', Num}, {'l2', Num, false}, {'c2', Num, false},
 })
 M.Change = struct('Change', {
   {'k', Str}, -- kind: ins/rm
   {'s', Str}, {'l', Num}, {'c', Num},
-  {'cur', CursorChange, false},
 })
 M.Buffer = struct('Buffer', {
   'id',
   {'gap', gap.Gap},
 
-  -- recorded changes from update
-  {'changes', List}, {'changeI', Num}, -- undo/redo
-  {'changeMax', Num},
-
+  -- recorded changes from update (for undo/redo)
+  {'changes', List}, {'changeMax', Num},
+  {'changeStartI', Num}, {'changeI', Num},
   'mdl',
 })
 

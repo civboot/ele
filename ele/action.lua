@@ -8,6 +8,8 @@ local window = require'ele.window'
 local Action = T.Action
 
 local M = {}
+M.ActStep = 0
+
 M.Actions = {}
 M.actionStruct = getmetatable(Action).__call
 constructor(Action, function(ty_, act)
@@ -66,7 +68,11 @@ Action{ name='move', brief='move cursor', fn = M.move, }
 
 ---------------------------------
 -- Insert Mode
-Action{ name='insert', brief='go to insert mode', fn = M.insert, }
+Action{ name='insert', brief='go to insert mode',
+  fn = function(mdl)
+    mdl.edit:changeStart(); M.insert(mdl)
+  end,
+}
 Action{
   name='rawKey', brief='the raw key handler (directly handles all key events)',
   fn = function(mdl, ev)
@@ -134,6 +140,7 @@ Action{
 -- Command Mode
 Action{ name='command', brief='go to command mode',
   fn = function(mdl)
+    if mdl.mode == 'insert' then mdl.edit:changeUpdate2() end
     mdl.mode = 'command'; clearState(mdl)
   end,
 }
@@ -143,14 +150,21 @@ Action{ name='quit', brief='quit the application',
 
 -- Direct Modification
 Action{ name='appendLine', brief='append to line', fn = function(mdl)
+  mdl.edit:changeStart()
   mdl.edit.c = mdl.edit:colEnd(); M.insert(mdl)
 end}
 Action{ name='changeEoL', brief='change to EoL', fn = function(mdl)
+  mdl.edit:changeStart()
   M.deleteEoL(mdl); M.insert(mdl)
 end}
-Action{ name='deleteEoL', brief='delete to EoL', fn = M.deleteEoL }
+Action{ name='deleteEoL', brief='delete to EoL',
+  fn = function(mdl)
+    mdl.edit:changeStart(); M.deleteEoL(mdl)
+  end,
+}
 Action{ name='newline', brief='change a new line', fn = function(mdl, ev)
   local e = mdl.edit
+  mdl.edit:changeStart();
   doTimes(ev, function() e:insert('\n') end)
   M.insert(mdl)
 end}
@@ -162,12 +176,12 @@ local bol = Action{ name='BoL', brief='goto beginning of line',
 }
 Action{ name='changeBoL', brief='change at beginning of line',
   fn = function(mdl, ev)
-    bol.fn(mdl, ev); M.insert(mdl)
+    mdl.edit:changeStart(); bol.fn(mdl, ev); M.insert(mdl)
   end
 }
 Action{ name='del1', brief='delete single character',
   fn = function(mdl, ev) doTimes(ev, function()
-      mdl.edit:removeOff(1)
+      mdl.edit:changeStart(); mdl.edit:removeOff(1)
     end)
   end
 }
@@ -307,6 +321,7 @@ Action{ name='replace1', brief='replace character',
 }
 Action{ name='replaceChar', brief='(called by replace1)',
   fn = function(mdl, ev)
+    mdl.edit:changeStart();
     local ch, e = ev.key, mdl.edit; assert(ev.rawKey)
     if #ch ~= 1 then
       mdl:status('replace='..ch, 'invalid')
@@ -358,6 +373,7 @@ Action{ name='findCharBack', brief='find a specific character',
 -- Delete
 Action{ name='delete', brief='delete to movement',
   fn = function(mdl, ev)
+    mdl.edit:changeStart();
     if ev.exec == 'deleteDone' and ev.key == 'd' then
       return chain(ev, 'deleteLine')
     end
@@ -391,6 +407,7 @@ Action{ name='deleteDone', brief='delete to movement (done)',
 -- Change
 Action{ name='change', brief='change to movement',
   fn = function(mdl, ev)
+    mdl.edit:changeStart();
     if ev.exec == 'changeDone' and ev.key == 'c' then
       return chain(ev, 'changeDone')
     end
@@ -418,9 +435,10 @@ Action{ name='changeDone', brief='change to movement (done)',
 -- Search
 Action{ name='search', brief='search for pattern',
   fn = function(mdl, ev)
-    local e = mdl.searchEdit;
+    local e = mdl.searchEdit
     if not ev.search then
       mdl:showSearch()
+      e:changeStart();
       e:trailWs()
       return chain(ev, 'chain', {execRawKey='search', search=''})
     end
@@ -463,13 +481,11 @@ Action{ name='searchPrev', brief='search for previous pattern',
 -- Undo / Redo
 Action{ name='undo', brief='undo previous action',
   fn = function(mdl, ev)
-    -- Note: eventually this will "merge" chains of undo's
     mdl.edit:undo()
   end,
 }
 Action{ name='redo', brief='redo previous undo',
   fn = function(mdl, ev)
-    -- Note: eventually this will "merge" chains of redo's
     mdl.edit:redo()
   end,
 }

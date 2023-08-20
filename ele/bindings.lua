@@ -20,7 +20,6 @@ end,
 _update=function(b, mode, bindings, checker)
   local bm = b[mode]
   for keys, act in pairs(bindings) do
-    pnt('?? act', act)
     if act then
       if ty(act) == Action then assertEq(ty(act.fn), Fn)
       else

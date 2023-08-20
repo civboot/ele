@@ -70,14 +70,20 @@ end,
 
 -----------------
 -- Mutations: these update the changes in the buffer
+changeStart=function(e) e.buf:changeStart(e.l, e.c) end,
+
+changeUpdate2=function(e)
+  local ch = assert(e.buf:getStart())
+  ch.l2, ch.c2 = e.l, e.c
+end,
 append=function(e, msg)
   local l2 = e:len() + 1
-  e.buf:append(msg).cursor = CursorChange{l1=e.l, c1=e.c, l2=l2, c2=1}
+  e.buf:append(msg)
   e.l, e.c = l2, 1
+  e:changeUpdate2()
 end,
 
 insert=function(e, s)
-  local cur = CursorChange{l1=e.l, c1=e.c}
   local ch = e.buf:insert(s, e.l, e.c);
   e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
@@ -85,8 +91,7 @@ insert=function(e, s)
   if (e.l > 1) and (e.c == 1) and ('\n' ~= strLast(s)) then
     e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
   end
-  cur.l2, cur.c2, ch.cur = e.l, e.c, cur
-  return ch
+  e:changeUpdate2()
 end,
 
 remove=function(e, ...)
@@ -109,8 +114,7 @@ remove=function(e, ...)
     end
   end
   ch = e.buf:remove(l, c, l2, c2)
-  ch.cur = CursorChange{l1=l1, c1=c1, l2=e.l, c2=e.c}
-  return ch
+  e:changeUpdate2()
 end,
 
 removeOff=function(e, off, l, c)
@@ -122,26 +126,26 @@ removeOff=function(e, off, l, c)
 end,
 
 replace=function(e, s, ...)
+  local l1, c1 = e.l, e.c
   local l, c = gap.lcs(...)
-  assert(e.l == l and (not c or e.c == c))
-  local chR = e:remove(...); local cR = chR.cur
-  local chI = e:insert(s)  ; local cI = chI.cur
-  e.l, e.c = cR.l2, cR.c2
-  cI.l2, cI.c2 = e.l, e.c
-  return {chI, chR}
+  assert(e.l == l and (not c or c1 == c))
+  local chR = e:remove(...);
+  local chI = e:insert(s)  ;
+  e.l, e.c = l1, c1
+  e:changeUpdate2()
 end,
 
 -----------------
 -- Undo / Redo
 undo=function(e)
-  local ch = e.buf:undo(); if not ch then return end
-  local c = assert(ch.cur)
+  local chs = e.buf:undo(); if not chs then return end
+  local c = assert(chs[1])
   e.l, e.c = c.l1, c.c1
 end,
 redo=function(e)
-  local ch = e.buf:redo(); if not ch then return end
-  local c = assert(ch.cur)
-  e.l, e.c = c.l1, c.c1
+  local chs = e.buf:redo(); if not chs then return end
+  local c = assert(chs[1])
+  e.l, e.c = c.l2, c.c2
 end,
 
 -----------------

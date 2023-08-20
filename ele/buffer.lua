@@ -4,6 +4,8 @@ local motion  = require'ele.motion'
 local gap  = require'ele.gap'
 
 local M = {}
+local add = table.insert
+local Buffer, Change, ChangeStart = T.Buffer, T.Change, T.ChangeStart
 
 local function redoRm(ch, b)
   local len = #ch.s - 1; if len < 0 then return ch end
@@ -20,11 +22,12 @@ end
 local CHANGE_REDO = { ins=redoIns, rm=redoRm, }
 local CHANGE_UNDO = { ins=redoRm, rm=redoIns, }
 
-methods(T.Buffer, {
+methods(Buffer, {
 new=function(s)
-  return T.Buffer{
+  return Buffer{
     gap=T.Gap.new(s),
-    changes=List{}, changeI=0, changeMax=0,
+    changes=List{}, changeMax=0,
+    changeStartI=0, changeI=0,
   }
 end,
 
@@ -33,27 +36,77 @@ addChange=function(b, ch)
   b.changes[b.changeI] = ch
   return ch
 end,
-
-changeIns=function(b, s, l, c)
-  return b:addChange(T.Change{k='ins', s=s, l=l, c=c})
+discardUnusedStart=function(b)
+  if b.changeI ~= 0 and b.changeStartI == b.changeI then
+    local ch = b.changes[b.changeI]
+    assert(ty(ch) == ChangeStart)
+    b.changeI = b.changeI - 1
+    b.changeMax = b.changeI
+    b.changeStartI = 0
+  end
+end,
+changeStart=function(b, l, c)
+  local ch = ChangeStart{l1=l, c1=c}
+  b:discardUnusedStart()
+  b:addChange(ch); b.changeStartI = b.changeI
+  return ch
+end,
+getStart=function(b)
+  if b.changeStartI <= b.changeMax then
+    return b.changes[b.changeStartI]
+  end
 end,
 
+changeIns=function(b, s, l, c)
+  return b:addChange(Change{k='ins', s=s, l=l, c=c})
+end,
 changeRm=function(b, s, l, c)
-  return b:addChange(T.Change{k='rm', s=s, l=l, c=c})
+  return b:addChange(Change{k='rm', s=s, l=l, c=c})
+end,
+
+canUndo=function(b) return b.changeI >= 1 end,
+-- TODO: shouldn't it be '<=' ?
+canRedo=function(b) return b.changeI < b.changeMax end,
+
+undoTop=function(b)
+  if b:canUndo() then return b.changes[b.changeI] end
+end,
+redoTop=function(b)
+  if b:canRedo() then return b.changes[b.changeI + 1] end
 end,
 
 undo=function(b)
-  if b.changeI < 1 then return nil end
-  local ch = b.changes[b.changeI]
-  b.changeI = b.changeI - 1
-  return CHANGE_UNDO[ch.k](ch, b)
+  local ch = b:undoTop(); if not ch then return end
+  b:discardUnusedStart(); b.changeStartI = 0
+
+  local done = {}
+  while ch do
+    b.changeI = b.changeI - 1
+    add(done, ch)
+    if ty(ch) == ChangeStart then break
+    else
+      assert(ty(ch) == Change)
+      CHANGE_UNDO[ch.k](ch, b)
+    end
+    ch = b:undoTop()
+  end
+  local o = civ.reverse(done)
+  return o
 end,
 
 redo=function(b)
-  if b.changeI >= b.changeMax then return nil end
-  b.changeI = b.changeI + 1
-  local ch = b.changes[b.changeI]
-  return CHANGE_REDO[ch.k](ch, b)
+  local ch = b:redoTop(); if not ch then return end
+  b:discardUnusedStart(); b.changeStartI = 0
+  assert(ty(ch) == ChangeStart)
+  local done = {ch}; b.changeI = b.changeI + 1
+  ch = b:redoTop(); assert(ty(ch) ~= ChangeStart)
+  while ch and ty(ch) ~= ChangeStart do
+    b.changeI = b.changeI + 1
+    add(done, ch)
+    CHANGE_REDO[ch.k](ch, b)
+    ch = b:redoTop()
+  end
+  return done
 end,
 
 append=function(b, s)
@@ -81,12 +134,11 @@ remove=function(b, ...)
 end,
 }) -- END Buffer methods
 
-T.CursorChange.__tostring = function(c)
+ChangeStart.__tostring = function(c)
   return string.format('[%s.%s -> %s.%s]', c.l1, c.c1, c.l2, c.c2)
 end
-T.Change.__tostring = function(c)
-  local cur = c.cur and (' '..tostring(c.cur)) or ''
-  return string.format('{%s %s.%s %q%s}', c.k, c.l, c.c, c.s, cur)
+Change.__tostring = function(c)
+  return string.format('{%s %s.%s %q}', c.k, c.l, c.c, c.s)
 end
 
 return M

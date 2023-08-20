@@ -1,7 +1,7 @@
 
 all: test
 
-LP = "./?.lua;../civlib/?.lua;${LUA_PATH}"
+LP = "./?.lua;../civlib/lua/?.lua;${LUA_PATH}"
 
 test:
 	mkdir -p out/

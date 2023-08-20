@@ -3,38 +3,42 @@ require'civ':grequire()
 grequire'ele.gap'
 local buffer = require'ele.buffer'
 local T = require'ele.types'
+local C, CS = T.Change, T.ChangeStart
 
 test('undoIns', nil, function()
   local b = T.Buffer.new(''); local g = b.gap
+
   local ch1 = T.Change{k='ins', s='hello ', l=1, c=1}
   local ch2 = T.Change{k='ins', s='world!', l=1, c=7}
+  b:changeStart(0, 0)
   local ch = b:insert('hello ', 1, 2)
   assertEq(ch1, ch)
   assertEq('hello ', tostring(g))
 
+  b:changeStart(0, 1)
   ch = b:insert('world!', 1, 7)
   assertEq(ch2, ch)
   assertEq('hello world!', tostring(g))
 
   -- undo + redo + undo again
-  ch = b:undo()
-  assertEq(ch2, ch)
+  local chs = b:undo()
+  assertEq({CS{l1=0, c1=1}, ch2}, chs)
   assertEq('hello ', tostring(g))
 
-  ch = b:redo()
-  assertEq(ch2, ch)
+  chs = b:redo()
+  assertEq({CS{l1=0, c1=1}, ch2}, chs)
   assertEq('hello world!', tostring(g))
 
-  ch = b:undo()
-  assertEq(ch2, ch)
+  chs = b:undo()
+  assertEq({CS{l1=0, c1=1}, ch2}, chs)
   assertEq('hello ', tostring(g))
 
   -- undo final, then redo twice
-  ch = b:undo()
-  assertEq(ch1, ch)
+  chs = b:undo()
+  assertEq({CS{l1=0, c1=0}, ch1}, chs)
   assertEq('', tostring(g))
-  b:redo(); ch = b:redo()
-  assertEq(ch2, ch)
+  b:redo(); chs = b:redo()
+  assertEq({CS{l1=0, c1=1}, ch2}, chs)
   assertEq('hello world!', tostring(g))
 end)
 
@@ -42,15 +46,17 @@ test('undoInsRm', nil, function()
   local b = T.Buffer.new(''); local g, ch = b.gap
   local ch1 = T.Change{k='ins', s='12345\n', l=1, c=1}
   local ch2 = T.Change{k='rm', s='12', l=1, c=1}
+  b:changeStart(0, 0)
   ch = b:insert('12345\n', 1, 2); assertEq(ch1, ch)
 
+  b:changeStart(0, 1)
   ch = b:remove(1, 1, 1, 2);      assertEq(ch2, ch)
   assertEq('345\n', tostring(g))
 
-  ch = b:undo();                  assertEq(ch2, ch)
+  ch = b:undo()[2]                assertEq(ch2, ch)
   assertEq('12345\n', tostring(g))
 
-  ch = b:redo();                  assertEq(ch2, ch)
+  ch = b:redo()[2]                assertEq(ch2, ch)
   assertEq('345\n', tostring(g))
 end)
 
@@ -61,22 +67,14 @@ test('undoReal', nil, function()
   local ch1 = T.Change{k='rm', s='It',  l=1, c=7}
   local ch2 = T.Change{k='rm', s="'",   l=1, c=7}
   local ch3 = T.Change{k='rm', s="'s ", l=1, c=7}
+  b:changeStart(0, 0)
   ch = b:remove(1, 7, 1, 8); assertEq(ch1, ch)
   assertEq("4     's nice to have some real data", tostring(g))
-
   ch = b:remove(1, 7, 1, 7); assertEq(ch2, ch)
   assertEq("4     s nice to have some real data", tostring(g))
 
-  ch = b:undo();             assertEq(ch2, ch)
-  assertEq("4     's nice to have some real data", tostring(g))
-  ch = b:undo();             assertEq(ch1, ch)
+  local chs = b:undo();      assertEq({CS{l1=0, c1=0}, ch1, ch2}, chs)
   assertEq("4     It's nice to have some real data", tostring(g))
-  ch = b:redo();             assertEq(ch1, ch)
-  assertEq("4     's nice to have some real data", tostring(g))
-  ch = b:redo();             assertEq(ch2, ch)
+  ch = b:redo();             assertEq({CS{l1=0, c1=0}, ch1, ch2}, chs)
   assertEq("4     s nice to have some real data", tostring(g))
-
 end)
-
--- test('undoWords', nil, function()
---   "It's nic's nices nice tnice to have"
