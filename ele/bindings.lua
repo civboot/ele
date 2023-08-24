@@ -73,7 +73,7 @@ Bindings.DEFAULT:updateCommand{
 
   -- direct modification
   A=A.appendLine, C=A.changeEoL, D=A.deleteEoL,
-  o=A.newline,    I=A.changeBoL,
+  o=A.insertLine, I=A.changeBoL,
   x=A.del1,       r=A.replace1,
 
   -- movement

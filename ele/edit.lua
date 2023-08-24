@@ -113,6 +113,7 @@ remove=function(e, ...)
       e.l, e.c = g:offset(off, e.l, e.c)
     end
   end
+  pnt('!! remove', l, c, l2, c2)
   ch = e.buf:remove(l, c, l2, c2)
   e:changeUpdate2()
 end,

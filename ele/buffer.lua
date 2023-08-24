@@ -8,8 +8,10 @@ local add = table.insert
 local Buffer, Change, ChangeStart = T.Buffer, T.Change, T.ChangeStart
 
 local function redoRm(ch, b)
+  pnt('!! redoRm', ch, #ch.s - 1)
   local len = #ch.s - 1; if len < 0 then return ch end
   local l2, c2 = b.gap:offset(len, ch.l, ch.c)
+  pnt('!! redoRm', ch.l, ch.c, l2, c2)
   b.gap:remove(ch.l, ch.c, l2, c2)
   return ch
 end
@@ -54,6 +56,11 @@ end,
 getStart=function(b)
   if b.changeStartI <= b.changeMax then
     return b.changes[b.changeStartI]
+  end
+end,
+printChanges=function(b)
+  for i=1,b.changeMax do
+    pnt(b.changes[i], (i == b.changeI) and "<-- changeI" or "")
   end
 end,
 

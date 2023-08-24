@@ -39,6 +39,10 @@ M.lcsLeftTop = function(...)
   return l2, c2
 end
 
+local function isSubNewline(len, llen, l, c, l2, c2)
+  return c and (l < len) and (l == l2) and (c == c2) and (c >= llen + 1)
+end
+
 methods(Gap, {
 new=function(s)
   local bot; if not s or type(s) == 'string' then
@@ -147,6 +151,7 @@ sub=function(g, ...)
   if lb  > l  then c = 0 end
   if lb2 < l2 then c2 = nil end -- EoL
   l, l2 = lb, lb2
+  if isSubNewline(len, #g:get(l), l, c, l2, c2) then return '\n' end
   local s = List{} -- s is sub
   for i=l, min(l2,          #g.bot) do s:add(g.bot[i]) end
   for i=1, min((l2-l+1)-#s, #g.top) do s:add(g.top[#g.top - i + 1]) end
@@ -209,6 +214,11 @@ remove=function(g, ...)
   if l2 < l then
     if nil == c then return List{}
     else             return '' end
+  end
+  if isSubNewline(len, #g:get(l), l, c, l2, c2) then
+    -- special remove newline case
+    g.bot:add(g.bot:pop() .. g.top:pop())
+    return '\n'
   end
   local b, t, rem = '', '', g.bot:drain(l2 - l + 1)
   if c == nil then      -- only lines, leave as list

@@ -60,6 +60,16 @@ test('remove', nil, function()
   r = g:remove(2, 3)
   assertEq(List{'c', ''}, r);
   assertEq('ab\nd', tostring(g));
+
+  g = Gap.new('ab\nc')
+  r = g:remove(2, 1, 2, 1) -- remove c
+  assertEq('c', r); assertEq('ab\n', tostring(g));
+  r = g:remove(1, 3, 2, 0) -- remove \n (lineskip)
+  assertEq('\n', r); assertEq('ab', tostring(g));
+
+  g = Gap.new('ab\nc')
+  r = g:remove(1, 3, 1, 3) -- remove \n (single)
+  assertEq('\n', r); assertEq('abc', tostring(g));
 end)
 
 local function subTests(g)

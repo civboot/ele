@@ -162,12 +162,14 @@ Action{ name='deleteEoL', brief='delete to EoL',
     mdl.edit:changeStart(); M.deleteEoL(mdl)
   end,
 }
-Action{ name='newline', brief='change a new line', fn = function(mdl, ev)
-  local e = mdl.edit
-  mdl.edit:changeStart();
-  doTimes(ev, function() e:insert('\n') end)
-  M.insert(mdl)
-end}
+Action{ name='insertLine', brief='add a new line and go to insert mode',
+  fn = function(mdl, ev)
+    local e = mdl.edit; e:changeStart();
+    e.c = e:colEnd()
+    doTimes(ev, function() e:insert('\n') end)
+    M.insert(mdl)
+  end,
+}
 local bol = Action{ name='BoL', brief='goto beginning of line',
   fn = function(mdl, ev)
     local e = mdl.edit
