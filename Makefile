@@ -8,6 +8,7 @@ test:
 	LUA_PATH=${LP} lua tests/test_gap.lua
 	LUA_PATH=${LP} lua tests/test_motion.lua
 	LUA_PATH=${LP} lua tests/test_buffer.lua
+	LUA_PATH=${LP} lua tests/test_action.lua
 	LUA_PATH=${LP} lua tests/test_model.lua
 
 run:

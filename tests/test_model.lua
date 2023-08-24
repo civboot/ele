@@ -5,6 +5,7 @@ local term = require'ele.term'; local tunix = term.unix
 local T = require'ele.types'
 local window = require'ele.window'
 local data = require'ele.data'
+local action = require'ele.action'; A = action.Actions
 
 local add = table.insert
 
@@ -50,6 +51,9 @@ end
 test('bindings', nil, function()
   local m = mockedModel(5, 5)
   assertEq(m:getBinding('^U'), {'up', times=15})
+  local spc = m:getBinding('space')
+  local win = assert(spc.w)
+  assertEq(win.V, A.splitVertical)
 end)
 
 
@@ -176,7 +180,6 @@ test('splitV', nil, function()
 123      |123]], tostring(m.term))
 end)
 
-
 test('splitEdit', nil, function()
   local m = mockedModel(
     5, 7, -- h, w
@@ -275,11 +278,10 @@ test('modLine', nil, function()
     assertEq('123abc\n8909876', tostring(t))
   stepKeys(m, '0'); assertEq(1, e.l); assertEq(1, e.c)
   stepKeys(m, '$'); assertEq(1, e.l); assertEq(7, e.c)
-  -- FIXME
-  -- stepKeys(m, 'o h i ^J'); assertEq(2, e.l); assertEq(3, e.c)
-  --   assertEq('123abc\nhi', tostring(t))
-  -- stepKeys(m, 'k 0 x x'); assertEq(1, e.l); assertEq(1, e.c)
-  --   assertEq('3abc\nhi', tostring(t))
+  stepKeys(m, 'o h i ^J'); assertEq(2, e.l); assertEq(3, e.c)
+    assertEq('123abc\nhi', tostring(t))
+  stepKeys(m, 'k 0 x x'); assertEq(1, e.l); assertEq(1, e.c)
+    assertEq('3abc\nhi', tostring(t))
 end)
 
 ------------
@@ -321,9 +323,8 @@ test('change', nil, function()
     assertEq('insert', m.mode)
   stepKeys(m, 'a b c space ^J'); assertEq(1, e.l); assertEq(8, e.c)
     assertEq('12 abc 567', tostring(t))
-  -- FIXME
-  -- stepKeys(m, 'r Z'); assertEq(1, e.l); assertEq(8, e.c)
-  --   assertEq('12 abc Z67', tostring(t))
+  stepKeys(m, 'r Z'); assertEq(1, e.l); assertEq(8, e.c)
+    assertEq('12 abc Z67', tostring(t))
 end)
 
 ------------
@@ -411,4 +412,13 @@ test('undo', nil, function()
     assertEq('abc 345678', tostring(e.buf.gap))
   stepKeys(m, 'u');       assertEq({1, 8}, {e.l, e.c})
     assertEq('abc 345\n678', tostring(e.buf.gap))
+end)
+
+test('actionSplitV', nil, function()
+  local m = mockedModel(2, 20, '1234567\n123')
+  -- FIXME
+  stepKeys(m, 'space w V');
+  assertEq([[
+1234567  |1234567
+123      |123]], tostring(m.term))
 end)

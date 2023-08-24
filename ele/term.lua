@@ -154,6 +154,7 @@ for c in pairs(M.KEY_INSERT) do VALID_KEY[c] = true end
 local CMD = { -- command characters (not sequences)
   [  9] = 'tab',
   [ 13] = 'return',
+  [ 32] = 'space',
   [127] = 'back',
   [ESC] = 'esc',
 }

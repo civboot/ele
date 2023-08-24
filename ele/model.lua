@@ -33,7 +33,6 @@ new=function(term_, inputCo)
     buffers=Map{}, bufId=1, bufIds=List{},
     start=Epoch(0), lastDraw=Epoch(0),
     bindings=Bindings.default(),
-    chord=nil, chordKeys=List{},
 
     inputCo=inputCo, term=term_,
     events=LL(),
@@ -91,8 +90,14 @@ end,
 -- #####################
 -- # Bindings
 getBinding=function(self, key)
-  if self.chord then return self.chord[key] end
-  return self.bindings[self.mode][key]
+  local b = self.bindings[self.mode]
+  pnt('!! getBinding', key)
+  if 'string' == type(key) then
+    pnt(string.format('  %s', b[key]))
+    return b[key]
+  end
+  pnt(string.format('  %s', b:getPath(key)))
+  return b:getPath(key)
 end,
 
 -- #####################
@@ -112,6 +117,18 @@ closeBuffer=function(self, b)
 end,
 newEdit=function(self, bufId, bufS)
   return Edit.new(nil, self:newBuffer(bufId, bufS))
+end,
+
+-- #####################
+-- # Windows
+moveFocus=function(self, direction)
+  assert(window.VIEW_DIRECTIONS[direction])
+  local sib = window.viewSiblings(self.edit)
+  local e = window.focusIndexBestEffort(sib[direction], sib.index)
+  if e then
+    assert(ty(e) == T.Edit)
+    self.edit = e
+  end
 end,
 
 -- #####################
@@ -164,6 +181,7 @@ end,
 --   * step: run all pieces
 step=function(self)
   local key = self.inputCo()
+  pnt(string.format('!! got key %q', key))
   self.start = civix.epoch()
   if key == '^C' then
     pnt('\nctl+C received, ending\n')
@@ -198,6 +216,7 @@ M.testModel = function(t, inp)
   mdl.edit = mdl:newEdit(nil, data.TEST_MSG)
   mdl.edit.container = mdl
   mdl.view = mdl.edit; mdl:showStatus()
+
   return mdl, mdl.statusEdit, mdl.edit
 end
 

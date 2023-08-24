@@ -93,6 +93,38 @@ M.windowAdd = function(view, add, split, leftTop)
   add.container = view
 end
 
+-- get the edit at the index... recursively.
+-- This is used for getting view siblings
+M.focusIndexBestEffort = function(v, i)
+  if not v then return end
+  assert(ty(v) ~= T.Model)
+  if ty(v) ~= T.Window then return v end
+  if v[i] then return M.focusIndexBestEffort(v, 1) end
+  if not v[1] then error(tostring(v)) end
+  return v[1]
+end
+
+M.VIEW_DIRECTIONS = Set{'left', 'right', 'up', 'down'}
+
+-- given a view (edit/window) return the siblings (left, right, up, down)
+-- as well as the index
+M.viewSiblings = function(v, sib, hasRecursed)
+  local w, sib = v.container, sib or {}
+  if ty(w) == T.Model then return sib end
+  assert(ty(w) == Window)
+  local i = indexOf(w, v); sib.index = i
+  local before, after = w[i - 1], w[i + 1]
+  if     w.splitkind == 'v' then
+    sib.left, sib.right = before, after
+  elseif w.splitkind == 'h' then
+    sib.up, sib.down = before, after
+  else assert(false) end
+  if not hasRecursed then
+    M.viewSiblings(w, sib, true)
+  end
+  return sib
+end
+
 ---------------------
 -- Window core methods
 

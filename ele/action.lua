@@ -49,7 +49,6 @@ M.move = function(mdl, ev)
   local e = mdl.edit; e.l, e.c = ev.l, ev.c
 end
 local function clearState(mdl)
-  mdl.chord = nil
   mdl.chain = nil
 end
 M.insert = function(mdl)
@@ -73,6 +72,20 @@ Action{ name='insert', brief='go to insert mode',
     mdl.edit:changeStart(); M.insert(mdl)
   end,
 }
+
+local function handleAction(mdl, action, ev, chordAction)
+  pnt(string.format('!! handleAction %s %s %s', action and action.name, ev, chordAction))
+  if not action then
+    return chain(ev, 'unboundKey')
+  elseif Action == ty(action) then -- found, continue
+    return chain(ev, action.name)
+  elseif Map == ty(action) then
+    return chain(ev, chordAction)
+  elseif M.Actions[action[1]] then
+    return List{action} -- raw event
+  end error(tfmt(action))
+end
+
 Action{
   name='rawKey', brief='the raw key handler (directly handles all key events)',
   fn = function(mdl, ev)
@@ -81,21 +94,25 @@ Action{
     if ev.execRawKey then
       return chain(ev, pop(ev, 'execRawKey'), {rawKey=true})
     end
-    local action, chordKeys = mdl:getBinding(key), mdl.chordKeys
-    chordKeys:add(key)
-    if not action then
-      mdl.chord, mdl.chordKeys = nil, List{}
-      return chain(ev, 'unboundKeys', {keys=chordKeys})
-    elseif Action == ty(action) then -- found, continue
-      mdl.chord, mdl.chordKeys = nil, List{}
-      return chain(ev, action.name, {keys=chordKeys})
-    elseif Map == ty(action) then
-      mdl.chord = action
-      if ev.chain then mdl.chain = ev end
-      return nil, true
-    elseif M.Actions[action[1]] then
-      return List{action} -- raw event
-    end error(tfmt(action))
+    local action = mdl:getBinding(key)
+    ev.key = key
+    return handleAction(mdl, action, ev, 'chord')
+  end,
+}
+Action{
+  name='chord', brief='start a keyboard chord',
+  fn = function(mdl, ev)
+    return chain(ev, 'chain', {execRawKey='chordChar', chord=List{ev.key}})
+  end,
+}
+Action{
+  name='chordChar', brief='start a keyboard chord',
+  fn = function(mdl, ev)
+    ev.chord:add(ev.key)
+    pnt('!! chordChar', ev, ev.chord)
+    ev.execRawKey='chordChar'
+    local action = mdl:getBinding(ev.chord)
+    return handleAction(mdl, action, ev, 'chain')
   end,
 }
 
@@ -116,13 +133,13 @@ local function unboundInsert(mdl, keys)
 end
 
 Action{
-  name='unboundKeys', brief='handle unbound key',
+  name='unboundKey', brief='handle unbound key',
   fn = function(mdl, event)
-    local keys = assert(event.keys)
+    local key = assert(event.key)
     if mdl.mode == 'command' then
-      return unboundCommand(mdl, event.keys)
+      return unboundCommand(mdl, List{key})
     elseif mdl.mode == 'insert' then
-      return unboundInsert(mdl, event.keys)
+      return unboundInsert(mdl, List{key})
     end
   end,
 }
@@ -134,6 +151,26 @@ Action{
       mdl.edit:removeOff(-1, l, c)
     end)
   end,
+}
+
+M.wantSpaces = function(col, spaces) return spaces - (col - 1) % spaces end
+local function tabN(mdl, spaces)
+  local e = mdl.edit; return function()
+    for _=1, M.wantSpaces(e.c, spaces) do e:insert(' ') end
+  end
+end
+
+Action{
+  name='tab2', brief='tab inserts 2 spaces',
+  fn = function(mdl, ev) return doTimes(ev, tabN(mdl, 2)) end,
+}
+Action{
+  name='tab3', brief='tab inserts 3 spaces',
+  fn = function(mdl, ev) return doTimes(ev, tabN(mdl, 3)) end,
+}
+Action{
+  name='tab4', brief='tab inserts 4 spaces',
+  fn = function(mdl, ev) return doTimes(ev, tabN(mdl, 4)) end,
 }
 
 ---------------------------------
@@ -162,10 +199,20 @@ Action{ name='deleteEoL', brief='delete to EoL',
     mdl.edit:changeStart(); M.deleteEoL(mdl)
   end,
 }
-Action{ name='insertLine', brief='add a new line and go to insert mode',
+Action{ name='insertLine',
+  brief='add a new line and go to insert mode',
   fn = function(mdl, ev)
     local e = mdl.edit; e:changeStart();
-    e.c = e:colEnd()
+    local c = e.c; e.c = e:colEnd()
+    doTimes(ev, function() e:insert('\n') end)
+    M.insert(mdl)
+  end,
+}
+Action{ name='insertLineAbove',
+  brief='add a new line above and go to insert mode',
+  fn = function(mdl, ev)
+    local e = mdl.edit; e:changeStart();
+    e.l = bound(e.l - 1, 1, e:len()); e.c = e:colEnd()
     doTimes(ev, function() e:insert('\n') end)
     M.insert(mdl)
   end,
@@ -186,6 +233,24 @@ Action{ name='del1', brief='delete single character',
       mdl.edit:changeStart(); mdl.edit:removeOff(1)
     end)
   end
+}
+Action{ name='splitVertical', brief='Split the screen verticly',
+  fn = function(mdl, ev) window.splitEdit(mdl.edit, 'v') end
+}
+Action{ name='splitHorizontal', brief='Split the screen horizontally',
+  fn = function(mdl, ev) window.splitEdit(mdl.edit, 'h') end
+}
+Action{ name='focusLeft', brief='Move focus to the left window',
+  fn = function(mdl, ev) mdl:moveFocus('left') end
+}
+Action{ name='focusRight', brief='Move focus to the right window',
+  fn = function(mdl, ev) mdl:moveFocus('right') end
+}
+Action{ name='focusUp', brief='Move focus to the up window',
+  fn = function(mdl, ev) mdl:moveFocus('up') end
+}
+Action{ name='focusDown', brief='Move focus to the down window',
+  fn = function(mdl, ev) mdl:moveFocus('down') end
 }
 
 ----------------

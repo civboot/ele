@@ -38,7 +38,7 @@ _update=function(b, mode, bindings, checker)
 end,
 updateInsert=function(b, bindings)
   return b:_update('insert', bindings, function(k)
-    if term.insertKey(k) then error(
+    if term.insertKey(k) and k ~= 'tab' then error(
       'bound visible in insert mode: '..k
     )end
   end)
@@ -62,6 +62,7 @@ Bindings.DEFAULT:updateInsert{
   ['^Q ^Q'] = A.quit,
   ['^J']    = A.command, ['esc']   = A.command,
   ['back']  = A.back,
+  ['tab']   = A.tab2,
 }
 
 -- Command Mode
@@ -71,9 +72,16 @@ Bindings.DEFAULT:updateCommand{
   i       = A.insert,
   ['g g'] = A.goTo,   G=A.goBot,
 
+  -- window
+  ['space w V'] = A.splitVertical,
+  ['space w H'] = A.splitHorizontal,
+  ['space w h'] = A.focusLeft, ['space w j'] = A.focusDown,
+  ['space w k'] = A.focusUp,   ['space w l'] = A.focusRight,
+
   -- direct modification
   A=A.appendLine, C=A.changeEoL, D=A.deleteEoL,
-  o=A.insertLine, I=A.changeBoL,
+  o=A.insertLine, O=A.insertLineAbove,
+  I=A.changeBoL,
   x=A.del1,       r=A.replace1,
 
   -- movement
