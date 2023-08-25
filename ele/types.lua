@@ -69,7 +69,7 @@ M.Model = struct('Model', {
   'view', -- Edit or Cols or Rows
   'edit', -- The active editor
   'statusEdit', 'searchEdit',
-  {'buffers', Map}, {'bufId', Num}, {'bufIds', Map},
+  {'buffers', Map}, {'freeBufId', Num}, {'freeBufIds', Map},
   {'start', Epoch}, {'lastDraw', Epoch},
   {'bindings', Bindings},
   'chain',

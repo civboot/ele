@@ -30,7 +30,7 @@ new=function(term_, inputCo)
   local mdl = {
     mode='command',
     h=-1, w=-1,
-    buffers=Map{}, bufId=1, bufIds=List{},
+    buffers=Map{}, freeBufId=1, freeBufIds=List{},
     start=Epoch(0), lastDraw=Epoch(0),
     bindings=Bindings.default(),
 
@@ -91,28 +91,29 @@ end,
 -- # Bindings
 getBinding=function(self, key)
   local b = self.bindings[self.mode]
-  pnt('!! getBinding', key)
   if 'string' == type(key) then
-    pnt(string.format('  %s', b[key]))
     return b[key]
   end
-  pnt(string.format('  %s', b:getPath(key)))
   return b:getPath(key)
 end,
 
 -- #####################
 -- # Buffers
-newBuffer=function(self, id, s)
-  id = id or self.bufIds:pop()
-  if not id then id = self.bufId; self.bufId = self.bufId + 1 end
+nextBufId=function(self, id)
+  id = id or self.freeBufIds:pop()
+  if not id then id = self.freeBufId; self.freeBufId = self.freeBufId + 1 end
   if self.buffers[id] then error('Buffer already exists: ' .. tostring(id)) end
+  return id
+end,
+newBuffer=function(self, id, s)
+  id = self:nextBufId(id)
   local b = Buffer.new(s); b.id = id
   self.buffers[id] = b
   return b
 end,
 closeBuffer=function(self, b)
   local id = b.id; self.buffers[id] = nil
-  if type(id) == 'number' then self.bufIds:add(id) end
+  if type(id) == 'number' then self.freeBufIds:add(id) end
   return b
 end,
 newEdit=function(self, bufId, bufS)
@@ -181,7 +182,6 @@ end,
 --   * step: run all pieces
 step=function(self)
   local key = self.inputCo()
-  pnt(string.format('!! got key %q', key))
   self.start = civix.epoch()
   if key == '^C' then
     pnt('\nctl+C received, ending\n')

@@ -74,7 +74,6 @@ Action{ name='insert', brief='go to insert mode',
 }
 
 local function handleAction(mdl, action, ev, chordAction)
-  pnt(string.format('!! handleAction %s %s %s', action and action.name, ev, chordAction))
   if not action then
     return chain(ev, 'unboundKey')
   elseif Action == ty(action) then -- found, continue
@@ -109,7 +108,6 @@ Action{
   name='chordChar', brief='start a keyboard chord',
   fn = function(mdl, ev)
     ev.chord:add(ev.key)
-    pnt('!! chordChar', ev, ev.chord)
     ev.execRawKey='chordChar'
     local action = mdl:getBinding(ev.chord)
     return handleAction(mdl, action, ev, 'chain')
