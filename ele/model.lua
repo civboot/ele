@@ -25,7 +25,9 @@ local Actions = action.Actions
 local Model, Edit, Buffer, Bindings = T.Model, T.Edit, T.Buffer, T.Bindings
 
 methods(Model, {
-__tostring=function() return 'APP' end,
+__tostring=function(m)
+  return string.format('Model[%s %s.%w]', m.mode, m.h, m.w)
+end,
 new=function(term_, inputCo)
   local mdl = {
     mode='command',
@@ -101,7 +103,7 @@ end,
 -- # Buffers
 nextBufId=function(self, id)
   id = id or self.freeBufIds:pop()
-  if not id then id = self.freeBufId; self.freeBufId = self.freeBufId + 1 end
+  if not id then id = self.freeBufId; self.freeBufId = id + 1 end
   if self.buffers[id] then error('Buffer already exists: ' .. tostring(id)) end
   return id
 end,
@@ -123,7 +125,7 @@ end,
 -- #####################
 -- # Windows
 moveFocus=function(self, direction)
-  assert(window.VIEW_DIRECTIONS[direction])
+  assert(window.VIEW_DIRECTION_SET[direction])
   local sib = window.viewSiblings(self.edit)
   local e = window.focusIndexBestEffort(sib[direction], sib.index)
   if e then

@@ -77,6 +77,7 @@ Bindings.DEFAULT:updateCommand{
   ['space w H'] = A.splitHorizontal,
   ['space w h'] = A.focusLeft, ['space w j'] = A.focusDown,
   ['space w k'] = A.focusUp,   ['space w l'] = A.focusRight,
+  ['space w d'] = A.editClose,
 
   -- direct modification
   A=A.appendLine, C=A.changeEoL, D=A.deleteEoL,

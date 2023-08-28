@@ -28,7 +28,9 @@ end,
 copy=function(e)
   return copy(e, {id=T.nextViewId()})
 end,
-close=function(e) pnt('TODO<edit close>') end,
+close=function(e)
+  assert(not e.container, "Edit not removed before close")
+end,
 forceHeight=function(e) return e.fh end,
 forceWidth=function(e)  return e.fw end,
 offset=function(e, off)

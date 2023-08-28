@@ -414,11 +414,66 @@ test('undo', nil, function()
     assertEq('abc 345\n678', tostring(e.buf.gap))
 end)
 
-test('actionSplitV', nil, function()
-  local m = mockedModel(2, 20, '1234567\n123')
-  -- FIXME
+local SPLIT = '1234567\n123'
+test('splitV', nil, function()
+  local m = mockedModel(2, 20, SPLIT)
+  local e1 = m.edit; assertEq(e1, m.view)
   stepKeys(m, 'space w V');
+  assertEq(m.edit, e1) -- edit hasn't changed
+  local w = m.view; assertEq(e1, w[2]) -- old edit is right
+  local e2 = w[1]
+  stepKeys(m, 'space w h'); assert(m.edit == e2) -- move, edit HAS changed
+  stepKeys(m, 'space w l'); assertEq(m.edit, e1) -- go back
+
   assertEq([[
 1234567  |1234567
 123      |123]], tostring(m.term))
+  stepKeys(m, 'space w d');
+  assertEq(SPLIT, tostring(m.term))
+  assert(m.edit == e2) -- edit HAS changed
+end)
+
+test('splitH', nil, function()
+  local m = mockedModel(5, 10, SPLIT)
+  local e1 = m.edit; assertEq(e1, m.view)
+  stepKeys(m, 'space w H');
+  assertEq(m.edit, e1) -- edit hasn't changed
+  local w = m.view; assertEq(e1, w[2]) -- old edit is bottom
+  local e2 = w[1]
+  stepKeys(m, 'space w k'); assert(m.edit == e2) -- move, edit has changed
+  stepKeys(m, 'space w j'); assertEq(m.edit, e1) -- go back
+
+  assertEq(SPLIT..'\n----------\n'..SPLIT, tostring(m.term))
+  stepKeys(m, 'space w d');
+  assertEq(SPLIT..'\n\n\n', tostring(m.term))
+  assert(m.edit == e2) -- edit HAS changed
+end)
+
+test('splitStatus', nil, function()
+  local m, status, e1 = testModel(6, 10)
+  assertEq([[
+*123456789
+1 This is 
+2         
+3         
+----------
+]], tostring(m.term))
+  assertEq(e1, m.edit)
+
+  -- first just go to status and back
+  stepKeys(m, 'space w j'); assertEq(status, m.edit)
+  stepKeys(m, 'space w k'); assertEq(e1,  m.edit)
+
+  -- Split vertically then move around
+  stepKeys(m, 'space w V'); assertEq(e1,     m.edit)
+  stepKeys(m, 'space w j'); assertEq(status, m.edit)
+  stepKeys(m, 'space w k'); assertEq(e1,     m.edit)
+  stepKeys(m, 'space w X') -- unset chord status
+  assertEq([[
+*123|*1234
+1 Th|1 Thi
+2   |2    
+3   |3    
+----------
+[unset] ch]], tostring(m.term))
 end)

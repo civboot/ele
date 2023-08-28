@@ -250,6 +250,21 @@ Action{ name='focusUp', brief='Move focus to the up window',
 Action{ name='focusDown', brief='Move focus to the down window',
   fn = function(mdl, ev) mdl:moveFocus('down') end
 }
+Action{ name='editClose', brief='Close the current edit view',
+  fn = function(mdl, ev)
+    pnt("!! editClose", ev)
+    local e = window.viewClosestSibling(mdl.edit)
+    pnt(string.format("!! editClose mdl.edit=%s, e=%s", mdl.edit, e))
+    window.viewRemove(mdl.edit)
+    mdl.edit:close()
+    if e then
+      mdl.edit = e
+    else
+      mdl.edit = mdl.statusEdit
+      mdl.view = mdl.statusEdit
+    end
+  end
+}
 
 ----------------
 -- Movement: these can be used by commands that expect a movement

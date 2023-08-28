@@ -99,12 +99,13 @@ M.focusIndexBestEffort = function(v, i)
   if not v then return end
   assert(ty(v) ~= T.Model)
   if ty(v) ~= T.Window then return v end
-  if v[i] then return M.focusIndexBestEffort(v, 1) end
+  if v[i] then return M.focusIndexBestEffort(v[i], 1) end
   if not v[1] then error(tostring(v)) end
   return v[1]
 end
 
-M.VIEW_DIRECTIONS = Set{'left', 'right', 'up', 'down'}
+M.VIEW_DIRECTIONS = {'left', 'right', 'up', 'down'}
+M.VIEW_DIRECTION_SET = Set(M.VIEW_DIRECTIONS)
 
 -- given a view (edit/window) return the siblings (left, right, up, down)
 -- as well as the index
@@ -125,18 +126,38 @@ M.viewSiblings = function(v, sib, hasRecursed)
   return sib
 end
 
+M.viewClosestSibling = function(v)
+  local sib = M.viewSiblings(v)
+  for _, dir in ipairs(M.VIEW_DIRECTIONS) do
+    if ty(sib[dir]) == Edit then return sib[dir] end
+  end
+  for _, dir in ipairs(M.VIEW_DIRECTIONS) do
+    local e = M.focusIndexBestEffort(sib[dir], sib.index)
+    if e then return e end
+  end
+  return nil
+end
+
 ---------------------
 -- Window core methods
 
 Window.__index = listIndex
-method(Window, 'new', function(container)
+methods(Window, {
+new=function(container)
   return Window{
     id=T.nextViewId(),
     container=container,
     tl=-1, tc=-1,
     th=-1, tw=-1,
   }
-end)
+end,
+close=function(w)
+  assert(not w.container, "Window not removed before close")
+end,
+__tostring=function(w)
+  return string.format('Window[id=%s len=%s]', w.id, #w)
+end,
+})
 
 ----------------------------------
 -- Draw Window
