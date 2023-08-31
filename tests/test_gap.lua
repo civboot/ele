@@ -45,7 +45,7 @@ test('remove', nil, function()
   r = g:remove(1, 3, 2, 2)
 
   g = Gap.new('a\nb')
-  r = g:remove(1, 2, 2, 0) -- remove newline
+  r = g:remove(1, 2, 1, 2) -- remove newline
   assertEq('\n', r);
   assertEq('ab', tostring(g))
   r = g:remove(1, 1, 2, 1)
@@ -69,14 +69,15 @@ test('remove', nil, function()
 
   g = Gap.new('ab\nc')
   r = g:remove(1, 3, 1, 3) -- remove \n (single)
-  assertEq('\n', r); assertEq('abc', tostring(g));
+  assertEq('\n', r);
+  assertEq('abc', tostring(g));
 end)
 
 local function subTests(g)
-  assertEq(List{},          g:sub(1, 0))
   assertEq(List{'ab'},      g:sub(1, 1))
   assertEq(List{'ab', 'c'}, g:sub(1, 2))
   assertEq(List{'c', ''},   g:sub(2, 3))
+  assertEq('ab\n',      g:sub(1, 1, 1, 3))
   assertEq('b\nc',      g:sub(1, 2, 2, 1))
 end
 test('sub', nil, function()
@@ -93,7 +94,7 @@ test('sub', nil, function()
 end)
 
 -- test round-trip offset
-local function offsetRound(g, expect, off, l, c, expectOff)
+local function offsetRound(g, l, c, off, expect, expectOff)
   local l2, c2 = g:offset(off, l, c)
   assertEq(expect, {l2, c2})
   local res = g:offsetOf(l, c, l2, c2)
@@ -103,34 +104,35 @@ end
 local OFFSET= '12345\n6789\n'
 local function _testOffset(g)
   local l, c
-  offsetRound(g, {1, 2}, 0,  1, 2)
-  offsetRound(g, {1, 3}, 1,  1, 2)
-  offsetRound(g, {1, 4}, 3,  1, 1)
-  offsetRound(g, {1, 5}, 4,  1, 1) -- '5'
-  offsetRound(g, {1, 6}, 5,  1, 1) -- '\n'
-  offsetRound(g, {2, 1}, 6,  1, 1) -- '6'
-  offsetRound(g, {2, 4}, 9,  1, 1) -- '9'
-  offsetRound(g, {2, 5}, 10, 1, 1) -- '\n'
-  offsetRound(g, {3, 1}, 11, 1, 1) -- ''
-  offsetRound(g, {3, 1}, 12, 1, 1, 11) -- EOF
+  offsetRound(g, 1, 2, 0,   {1, 2})
+  offsetRound(g, 1, 2, 1,   {1, 3})
+  -- here
+  offsetRound(g, 1, 1, 3,   {1, 4})
+  offsetRound(g, 1, 1, 4,   {1, 5}) -- '5'
+  offsetRound(g, 1, 1, 5,   {1, 6}) -- '\n'
+  offsetRound(g, 1, 1, 6,   {2, 1}) -- '6'
+  offsetRound(g, 1, 1, 9,   {2, 4}) -- '9'
+  offsetRound(g, 1, 1, 10,  {2, 5}) -- '\n'
+  offsetRound(g, 1, 1, 11,  {3, 1}) -- ''
+  offsetRound(g, 1, 1, 12,  {3, 1}, 11) -- EOF
 
-  offsetRound(g, {1, 2}, -3, 1, 5) -- '2'
-  offsetRound(g, {1, 1}, -4, 1, 5) -- '1'
-  offsetRound(g, {1, 1}, -5, 1, 5, -4) -- '1'
+  offsetRound(g, 1, 5, -3,  {1, 2}) -- '2'
+  offsetRound(g, 1, 5, -4,  {1, 1}) -- '1'
+  offsetRound(g, 1, 5, -5,  {1, 1}, -4) -- '1'
 
-  offsetRound(g, {2, 5}, -1, 3, 1) -- '\n'
-  offsetRound(g, {2, 4}, -2, 3, 1) -- '9'
-  offsetRound(g, {2, 3}, -3, 3, 1) -- '8'
-  offsetRound(g, {2, 2}, -4, 3, 1) -- '7'
-  offsetRound(g, {2, 1}, -5, 3, 1) -- '6'
-  offsetRound(g, {1, 6}, -6, 3, 1) -- '\n'
-  offsetRound(g, {1, 1}, -11, 3, 1) -- '\n'
-  offsetRound(g, {1, 1}, -12, 3, 1, -11) -- BOF
+  offsetRound(g, 3, 1, -1,  {2, 5}) -- '\n'
+  offsetRound(g, 3, 1, -2,  {2, 4}) -- '9'
+  offsetRound(g, 3, 1, -3,  {2, 3}) -- '8'
+  offsetRound(g, 3, 1, -4,  {2, 2}) -- '7'
+  offsetRound(g, 3, 1, -5,  {2, 1}) -- '6'
+  offsetRound(g, 3, 1, -6,  {1, 6}) -- '\n'
+  offsetRound(g, 3, 1, -11, {1, 1}) -- '\n'
+  offsetRound(g, 3, 1, -12, {1, 1}, -11) -- BOF
 
 
   -- Those are all "normal", let's do some OOB stuff
-  offsetRound(g, {2, 1}, 1,  1, 6)
-  offsetRound(g, {2, 1}, 1,  1, 10) -- note (1, 6) is EOL
+  offsetRound(g, 1, 6 , 1, {2, 1})
+  offsetRound(g, 1, 10, 1, {2, 1}) -- note (1, 6) is EOL
 end
 
 test('offset', nil, function()

@@ -15,11 +15,10 @@ require'civ':grequire()
 local sub = string.sub
 local motion = require'ele.motion'
 
-local CMAX = 999; M.CMAX = CMAX
 local Gap = struct('Gap', {
   {'bot', List}, {'top', List},
 })
-Gap.CMAX = CMAX
+Gap.CMAX = 999;
 M.Gap = Gap
 
 local function lcs(l, c, l2, c2)
@@ -37,10 +36,6 @@ M.lcsLeftTop = function(...)
   if l == l2 then return l, min(c, c2) end
   if l < l2  then return l, c end
   return l2, c2
-end
-
-local function isSubNewline(len, llen, l, c, l2, c2)
-  return c and (l < len) and (l == l2) and (c == c2) and (c >= llen + 1)
 end
 
 methods(Gap, {
@@ -92,7 +87,7 @@ offset=function(g, off, l, c)
     llen = #line
     c = bound(c, 0, llen); m = -c - 1
     if m < off then c = c + off; off = 0
-    else l, c, off = l - 1, CMAX, off - m
+    else l, c, off = l - 1, Gap.CMAX, off - m
     end
     if l <= 0 then return 1, 1 end
   end
@@ -114,7 +109,7 @@ offsetOf=function(g, l, c, l2, c2)
     llen = #g:get(l) + ((l==len and 0) or 1)
     c = bound(c, 0, llen)
     off = off - c
-    l, c = l - 1, CMAX
+    l, c = l - 1, Gap.CMAX
   end
   llen = #g:get(l) + ((l==len and 0) or 1)
   c, c2 = bound(c, 0, llen), bound(c2, 0, llen)
@@ -147,21 +142,23 @@ end,
 sub=function(g, ...)
   local l, c, l2, c2 = lcs(...)
   local len = g:len()
-  local lb, lb2 = bound(l, 0, len), bound(l2, 0, len+1)
-  if lb  > l  then c = 0 end
+  local lb, lb2 = bound(l, 1, len), bound(l2, 1, len+1)
+  if lb  > l  then c = 1 end
   if lb2 < l2 then c2 = nil end -- EoL
   l, l2 = lb, lb2
-  if isSubNewline(len, #g:get(l), l, c, l2, c2) then return '\n' end
   local s = List{} -- s is sub
   for i=l, min(l2,          #g.bot) do s:add(g.bot[i]) end
   for i=1, min((l2-l+1)-#s, #g.top) do s:add(g.top[#g.top - i + 1]) end
   if nil == c then -- skip, only lines
   elseif #s == 0 then s = '' -- empty
   elseif l == l2 then
-    assert(1 == #s); s = sub(s[1], c, c2)
+    assert(1 == #s); local line = s[1]
+     s = sub(line, c, c2)
+    if c2 > #line and l2 < len then s = s..'\n' end
   else
-    s[1] = sub(s[1], c)
-    s[#s] = sub(s[#s], 1, c2)
+    local last = s[#s];
+    s[1] = sub(s[1], c); s[#s] = sub(last, 1, c2)
+    if c2 > #last and l2 < len then s:add('') end
     s = table.concat(s, '\n')
   end
   return s
@@ -209,31 +206,35 @@ end,
 remove=function(g, ...)
   local l, c, l2, c2 = lcs(...);
   local len = g:len()
-  if l2 > len then l2, c2 = len, CMAX end
+  if l2 > len then l2, c2 = len, Gap.CMAX end
   g:set(l2)
   if l2 < l then
     if nil == c then return List{}
     else             return '' end
   end
-  if isSubNewline(len, #g:get(l), l, c, l2, c2) then
-    -- special remove newline case
-    g.bot:add(g.bot:pop() .. g.top:pop())
-    return '\n'
-  end
-  local b, t, rem = '', '', g.bot:drain(l2 - l + 1)
+  -- b=begin, e=end (of leftover text)
+  local b, e, out, rmNewline = '', '', g.bot:drain(l2 - l + 1)
   if c == nil then      -- only lines, leave as list
-  elseif #rem == 1 then -- no newlines (out=str)
-    rem = rem[1]
-    b, rem, t = sub(rem, 1, c-1), sub(rem, c, c2), sub(rem, c2+1)
-    g.bot:add(b .. t)
-  else -- has new line (out=str)
-    b, rem[1]    = strdivide(rem[1], c-1)
-    rem[#rem], t = strdivide(rem[#rem], c2)
-    rem = concat(rem, '\n')
-    g.bot:add(b .. t)
+  else
+    rmNewline = c2 > #(out[#out])
+    if #out == 1 then -- no newlines
+      b, out[1], e = sub(out[1], 1, c-1), sub(out[1], c, c2), sub(out[1], c2+1)
+    else -- has new line
+      b, out[1]    = strdivide(out[1], c-1)
+      out[#out], e = strdivide(out[#out], c2)
+    end
+    local leftover = b .. e
+    if rmNewline and #g.top > 0 then
+      g.top[#g.top] = leftover .. g.top[#g.top]
+      table.insert(out, '')
+    else g.bot:add(leftover) end
+    out = concat(out, '\n')
   end
-  if 0 == #g.bot then g.bot:add('') end
-  return rem
+  if 0 == #g.bot then
+    if 0 ~= #g.top then g.bot:add(g.top:pop())
+    else                g.bot:add('') end
+  end
+  return out
 end,
 
 append=function(g, s)

@@ -55,7 +55,7 @@ M.insert = function(mdl)
   mdl.mode = 'insert'; clearState(mdl)
 end
 M.deleteEoL = function(mdl)
-  local e = mdl.edit; e:remove(e.l, e.c, e.l, gap.CMAX)
+  local e = mdl.edit; e:remove(e.l, e.c, e.l, #e:curLine())
 end
 
 ---------------------------------
@@ -252,9 +252,7 @@ Action{ name='focusDown', brief='Move focus to the down window',
 }
 Action{ name='editClose', brief='Close the current edit view',
   fn = function(mdl, ev)
-    pnt("!! editClose", ev)
     local e = window.viewClosestSibling(mdl.edit)
-    pnt(string.format("!! editClose mdl.edit=%s, e=%s", mdl.edit, e))
     window.viewRemove(mdl.edit)
     mdl.edit:close()
     if e then
