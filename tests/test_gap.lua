@@ -71,6 +71,12 @@ test('remove', nil, function()
   r = g:remove(1, 3, 1, 3) -- remove \n (single)
   assertEq('\n', r);
   assertEq('abc', tostring(g));
+
+  g = Gap.new('ab\nc\nde\n')
+  r = g:remove(1, 3, 1, 3) -- remove \n (single)
+  assertEq('\n', r);
+  local res = tostring(g);
+  assertEq('abc\nde\n', res)
 end)
 
 local function subTests(g)

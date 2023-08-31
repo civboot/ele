@@ -165,9 +165,9 @@ sub=function(g, ...)
 end,
 
 __tostring=function(g)
-  local bot = concat(g.bot, '\n')
-  if #g.top == 0 then return bot  end
-  return bot..'\n'..concat(g.top, '\n')
+  local out = copy(g.bot)
+  for i=#g.top,1,-1 do table.insert(out, g.top[i]) end
+  return concat(out, '\n')
 end,
 
 -- find the pattern starting at l/c
@@ -231,8 +231,8 @@ remove=function(g, ...)
     out = concat(out, '\n')
   end
   if 0 == #g.bot then
-    if 0 ~= #g.top then g.bot:add(g.top:pop())
-    else                g.bot:add('') end
+    if 0 == #g.top then g.bot:add('')
+    else  g.bot:add(g.top:pop()) end
   end
   return out
 end,

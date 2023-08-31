@@ -60,8 +60,7 @@ test('undoInsRm', nil, function()
   assertEq('345\n', tostring(g))
 end)
 
-test('undoReal', nil, function()
-  -- repro a bug I found
+test('undoReal', nil, function() -- undo/redo word deleting
   local START = "4     It's nice to have some real data"
   local b = T.Buffer.new(START); local g, ch = b.gap
   local ch1 = T.Change{k='rm', s='It',  l=1, c=7}
@@ -77,4 +76,24 @@ test('undoReal', nil, function()
   assertEq("4     It's nice to have some real data", tostring(g))
   ch = b:redo();             assertEq({CS{l1=0, c1=0}, ch1, ch2}, chs)
   assertEq("4     s nice to have some real data", tostring(g))
+end)
+
+test('undoMulti', nil, function() -- undo/redo across multi lines
+  local START = '123\n456\n789\nabc'
+  local b = T.Buffer.new(START); local g, ch = b.gap
+  assertEq(START, tostring(g))
+  local ch1 = T.Change{k='rm', s='\n', l=1, c=4}
+  local ch2 = T.Change{k='rm', s='\n', l=1, c=7}
+  b:changeStart(0, 0)
+  ch = b:remove(1, 4, 1, 4); assertEq(ch1, ch)
+  assertEq('123456\n789\nabc', tostring(g))
+  b:changeStart(0, 0)
+  ch = b:remove(1, 7, 1, 7); assertEq(ch2, ch)
+  assertEq('123456789\nabc', tostring(g))
+
+  ch = b:undo()[2]                assertEq(ch2, ch)
+  assertEq('123456\n789\nabc', tostring(g))
+
+  ch = b:undo()[2]                assertEq(ch1, ch)
+  assertEq(START, tostring(g))
 end)
