@@ -1,8 +1,8 @@
 -- #####################
 -- # Edit struct
 require'civ':grequire()
+local gap = require'civ.gap'
 local T = require'ele.types'
-local gap = require'ele.gap'
 local motion = require'ele.motion'
 local term = require'ele.term'; tunix = term.unix
 local Edit, CursorChange = T.Edit, T.CursorChange

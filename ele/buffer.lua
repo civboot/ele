@@ -1,7 +1,7 @@
 local civ  = require'civ':grequire()
+local gap  = require'civ.gap'
 local T = require'ele.types'
 local motion  = require'ele.motion'
-local gap  = require'ele.gap'
 
 local M = {}
 local add = table.insert

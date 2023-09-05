@@ -1,5 +1,5 @@
 local civ  = require'civ':grequire()
-local gap  = require'ele.gap'
+local gap  = require'civ.gap'
 
 local M = {Gap=gap.Gap}
 

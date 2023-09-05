@@ -1,6 +1,6 @@
 
 require'civ':grequire()
-grequire'ele.gap'
+grequire'civ.gap'
 local buffer = require'ele.buffer'
 local T = require'ele.types'
 local C, CS = T.Change, T.ChangeStart

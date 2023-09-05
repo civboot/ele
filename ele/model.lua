@@ -3,12 +3,12 @@
 -- Implements the core app
 
 require'civ':grequire()
-local T = require'ele.types'
+local gap  = require'civ.gap'
 local civix = require'civ.unix'
+local T = require'ele.types'
 local posix = require'posix'
 local action = require'ele.action'
 local term = require'ele.term'
-local gap  = require'ele.gap'
 local edit = require'ele.edit'
 local buffer = require'ele.buffer'
 local bindings = require'ele.bindings'
