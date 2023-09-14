@@ -365,7 +365,7 @@ test('modLine', nil, function()
   assertEq([[
 12345678
 ---------
-123 |]], toString(t))
+123 |]], tostring(t))
   stepKeys(m, 'return')
 assertEq([[
 12345678
