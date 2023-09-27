@@ -64,8 +64,8 @@ end
 -- Helpers
 Edit.trailWs=function(e, msg)
   local g = e.buf.gap
-  while g:get(g:len() - 1)    ~= ''
-        or g:get(g:len() - 2) ~= '' do
+  while g:get(#g - 1)    ~= ''
+        or g:get(#g - 2) ~= '' do
     e:append('')
   end
 end
@@ -102,7 +102,7 @@ Edit.remove=function(e, ...)
   local l1, c1 = e.l, e.c
   local l, c, l2, c2 = gap.lcs(...)
   local g, ch = e.buf.gap
-  local len = g:len()
+  local len = #g
   l, l2 = ds.bound(l, 1, len), ds.bound(l2, 1, len)
   if not c then -- only lines specified
     l, l2 = ds.sort2(l, l2); assert(not c2)

@@ -116,7 +116,7 @@ Buffer.redo=function(b)
 end
 
 Buffer.append=function(b, s)
-  local ch = b:changeIns(s, b.gap:len() + 1, 1)
+  local ch = b:changeIns(s, #b.gap + 1, 1)
   b.gap:append(s)
   return ch
 end
@@ -139,7 +139,7 @@ Buffer.remove=function(b, ...)
   return ch
 end
 
-Buffer.len = function(b) return b.gap:len() end
+Buffer.len = function(b) return #b.gap end
 
 ChangeStart.__tostring = function(c)
   return string.format('[%s.%s -> %s.%s]', c.l1, c.c1, c.l2, c.c2)

@@ -1,4 +1,4 @@
--- line-based gap buffer for shrm
+-- line-based gap buffer.
 --
 -- The buffer is composed of two lists (stacks)
 -- of lines.
@@ -23,7 +23,6 @@ local M = {} -- module
 
 local max, min, bound = ds.max, ds.min, ds.bound
 local copy, drain = ds.copy, ds.drain
-
 
 -- return the first i characters and the remainder
 M.strdivide = function(s, i)
@@ -59,7 +58,7 @@ Gap.CMAX = 999
 M.Gap = Gap
 
 Gap.__fmt = function(g, f)
-  local len = g:len()
+  local len = #g
   for i, l in ipairs(g.bot) do
     add(f, l);
     if i < len then add(f, '\n') end
@@ -70,24 +69,39 @@ Gap.__fmt = function(g, f)
   end
 end
 
-Gap.new =function(s)
+Gap.new = function(s)
   s = s or {''}
   if type(s) == 'string' then s = ds.splitLines(s) end
   return Gap{ bot=s, top={} }
 end
 
-Gap.len = function(g) return #g.bot + #g.top end
+Gap.__len = function(g) return #g.bot + #g.top end
 
 Gap.cur = function(g) return g.bot[#g.bot]  end
 
-Gap.get=function(g, l)
-  local bl = #g.bot
-  if l <= bl then  return g.bot[l]
+Gap.get = function(g, l)
+  print('!! get', type(g), type(l), l)
+  local bl = #(g.bot)
+  if l <= bl then return g.bot[l]
   else return g.top[#g.top - (l - bl) + 1] end
 end
-Gap.last=function(g) return g:get(g:len()) end
+
+local gapIndex = Gap.__index
+Gap.__index = function(g, k)
+  if type(k) == 'number' then return Gap.get(g, k) end
+  return gapIndex(g, k)
+end
+
+local function ipairsGap(g, i)
+  i = i + 1; if i > Gap.__len(g) then return end
+  return i, Gap.get(g, i)
+end
+Gap.__ipairs = function(g) return ipairsGap, g, 0 end
+Gap.__pairs  = Gap.__ipairs
+
+Gap.last=function(g) return g:get(#g) end
 Gap.bound=function(g, l, c, len, line)
-  len = len or g:len()
+  len = len or Gap.__len(g)
   l = bound(l, 1, len)
   if not c then return l end
   return l, bound(c, 1, #(line or g:get(l)) + 1)
@@ -95,12 +109,13 @@ end
 
 -- Get the l, c with the +/- offset applied
 Gap.offset=function(g, off, l, c)
-  local len, m, llen, line = g:len()
+  local len, m, llen, line = Gap.__len(g)
   -- 0 based index for column
+  print('!! line', l, g:get(l), type(g:get(l)))
   l = bound(l, 1, len); c = bound(c - 1, 0, #g:get(l))
   while off > 0 do
     line = g:get(l)
-    if nil == line then return len, #g:get(len) + 1 end
+    if nil == line then return len, #g[len] + 1 end
     llen = #line + 1 -- +1 is for the newline
     c = bound(c, 0, llen); m = llen - c
     if m > off then c = c + off; off = 0;
@@ -123,7 +138,7 @@ Gap.offset=function(g, off, l, c)
 end
 
 Gap.offsetOf=function(g, l, c, l2, c2)
-  local off, len, llen = 0, g:len()
+  local off, len, llen = 0, Gap.__len(g)
   l, c = g:bound(l, c, len);  l2, c2 = g:bound(l2, c2, len)
   c, c2 = c - 1, c2 - 1 -- column math is 0-indexed
   while l < l2 do
@@ -145,7 +160,7 @@ Gap.offsetOf=function(g, l, c, l2, c2)
 end
 
 -- set the gap to the line
-Gap.set = function(g, l)
+Gap.setGap = function(g, l)
   l = l or (#g.bot + #g.top)
   assert(l > 0)
   if l == #g.bot then return end -- do nothing
@@ -168,7 +183,7 @@ end
 -- of lines (l, l2) or str (l, c, l2, c2)
 Gap.sub=function(g, ...)
   local l, c, l2, c2 = lcs(...)
-  local len = g:len()
+  local len = Gap.__len(g)
   local lb, lb2 = bound(l, 1, len), bound(l2, 1, len+1)
   if lb  > l  then c = 1 end
   if lb2 < l2 then c2 = nil end -- EoL
@@ -231,7 +246,7 @@ end
 
 -- insert s (string) at l, c
 Gap.insert=function(g, s, l, c)
-  g:set(l)
+  g:setGap(l)
   local cur = pop(g.bot)
   g:extend(M.strinsert(cur, c or 1, s))
 end
@@ -239,9 +254,9 @@ end
 -- remove from (l, c) -> (l2, c2), return what was removed
 Gap.remove=function(g, ...)
   local l, c, l2, c2 = lcs(...);
-  local len = g:len()
+  local len = Gap.__len(g)
   if l2 > len then l2, c2 = len, Gap.CMAX end
-  g:set(l2)
+  g:setGap(l2)
   if l2 < l then
     if nil == c then return {}
     else             return '' end
@@ -272,7 +287,7 @@ Gap.remove=function(g, ...)
 end
 
 Gap.append=function(g, s)
-  g:set(); add(g.bot, s)
+  g:setGap(); add(g.bot, s)
 end
 
 -- extend onto gap
