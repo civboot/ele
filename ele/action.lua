@@ -1,18 +1,23 @@
-local civ  = require'civ':grequire()
-local gap = require'civ.gap'
+local mty = require'metaty'
+local ds = require'ds'
+local gap = require'ele.gap'
 local T = require'ele.types'
 local term = require'ele.term'
 local motion = require'ele.motion'
 local window = require'ele.window'
 
 local Action = T.Action
+local ty = mty.ty
+local min, max, bound, sort2 = ds.min, ds.max, ds.bound, ds.sort2
+
+local add = table.insert
 
 local M = {}
 M.ActStep = 0
 
 M.Actions = {}
 M.actionStruct = getmetatable(Action).__call
-constructor(Action, function(ty_, act)
+Action:new(function(ty_, act)
   local name = assert(act.name)
   if not act.override and M.Actions[name] then
     error('Action already defined: ' .. name)
@@ -29,10 +34,10 @@ end)
 -- If name='chain' then the mdl will store it
 -- and include it in the next rawKey event.
 local function chain(ev, name, add)
-  ev.chain = ev.chain or List{}; ev.chain:add(ev[1])
+  ev.chain = ev.chain or {}; table.insert(ev.chain, ev[1])
   ev.depth = nil
-  ev[1] = name; if add then update(ev, add) end
-  return List{ev}, true
+  ev[1] = name; if add then ds.update(ev, add) end
+  return {ev}, true
 end
 
 local function execChain(mdl, ev)
@@ -78,11 +83,11 @@ local function handleAction(mdl, action, ev, chordAction)
     return chain(ev, 'unboundKey')
   elseif Action == ty(action) then -- found, continue
     return chain(ev, action.name)
-  elseif Map == ty(action) then
-    return chain(ev, chordAction)
   elseif M.Actions[action[1]] then
-    return List{action} -- raw event
-  end error(tfmt(action))
+    return {action} -- raw event
+  elseif 'table' == ty(action) then
+    return chain(ev, chordAction)
+  end error(mty.fmt(action))
 end
 
 Action{
@@ -91,7 +96,7 @@ Action{
     local key = assert(ev.key)
     assert(type(key) == 'string', key)
     if ev.execRawKey then
-      return chain(ev, pop(ev, 'execRawKey'), {rawKey=true})
+      return chain(ev, ds.pop(ev, 'execRawKey'), {rawKey=true})
     end
     local action = mdl:getBinding(key)
     ev.key = key
@@ -101,13 +106,13 @@ Action{
 Action{
   name='chord', brief='start a keyboard chord',
   fn = function(mdl, ev)
-    return chain(ev, 'chain', {execRawKey='chordChar', chord=List{ev.key}})
+    return chain(ev, 'chain', {execRawKey='chordChar', chord={ev.key}})
   end,
 }
 Action{
   name='chordChar', brief='start a keyboard chord',
   fn = function(mdl, ev)
-    ev.chord:add(ev.key)
+    add(ev.chord, ev.key)
     ev.execRawKey='chordChar'
     local action = mdl:getBinding(ev.chord)
     return handleAction(mdl, action, ev, 'chain')
@@ -135,9 +140,9 @@ Action{
   fn = function(mdl, event)
     local key = assert(event.key)
     if mdl.mode == 'command' then
-      return unboundCommand(mdl, List{key})
+      return unboundCommand(mdl, {key})
     elseif mdl.mode == 'insert' then
-      return unboundInsert(mdl, List{key})
+      return unboundInsert(mdl, {key})
     end
   end,
 }

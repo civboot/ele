@@ -1,9 +1,12 @@
 -- #####################
 -- # Keyboard Bindings
+local mty = require'metaty'
+local ds = require'ds'
 local T = require'ele.types'
 local term = require'ele.term'
 local A = require'ele.action'.Actions
 local byte, char = string.byte, string.char
+local ty = mty.ty
 
 local M = {}
 local Bindings, Action = T.Bindings, T.Action
@@ -12,16 +15,16 @@ local BIND_TYPES = {
   Action,
 }
 
-methods(Bindings, {
+Bindings.DEFAULT = Bindings{insert = {}, command = {}}
 
-new=function()
-  return Bindings{insert = Map{}, command = Map{}}
-end,
-_update=function(b, mode, bindings, checker)
+Bindings.new=function()
+  return Bindings{insert = {}, command = {}}
+end
+Bindings._update=function(b, mode, bindings, checker)
   local bm = b[mode]
   for keys, act in pairs(bindings) do
     if act then
-      if ty(act) == Action then assertEq(ty(act.fn), Fn)
+      if ty(act) == Action then assert(ty(act.fn) == 'function')
       else
         local aname = act[1]
         if not A[aname] then error(
@@ -33,22 +36,20 @@ _update=function(b, mode, bindings, checker)
     if checker then
       for _, k in ipairs(keys) do checker(k) end
     end
-    bm:setPath(keys, act or nil)
+    ds.setPath(bm, keys, act or nil)
   end
-end,
-updateInsert=function(b, bindings)
+end
+Bindings.updateInsert=function(b, bindings)
   return b:_update('insert', bindings, function(k)
     if term.insertKey(k) and k ~= 'tab' then error(
       'bound visible in insert mode: '..k
     )end
   end)
-end,
-updateCommand=function(b, bindings)
+end
+Bindings.updateCommand=function(b, bindings)
   return b:_update('command', bindings)
-end,
-DEFAULT = Bindings{insert = Map{}, command = Map{}},
-default=function() return deepcopy(Bindings.DEFAULT) end,
-})
+end
+Bindings.default=function() return ds.deepcopy(Bindings.DEFAULT) end
 
 -- default key bindings (updated in Default Bindings section)
 
@@ -105,7 +106,7 @@ for b=byte('0'),byte('9') do
   Bindings.DEFAULT.command[char(b)] = A.times
 end
 
-assertEq(Bindings.DEFAULT.command['^U'], {'up', times=15})
+assert(mty.eq(Bindings.DEFAULT.command['^U'], {'up', times=15}))
 
 -- bindings for 'simple' mode.
 --

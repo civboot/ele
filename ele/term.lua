@@ -65,27 +65,20 @@ https://en.wikipedia.org/wiki/ANSI_escape_code
 -- It doesn't make a difference except for the input() and keyname()
 -- functions.
 
--- local UTF8 = false -- 8-bit encoding (eg. ISO-8859 encodings)
 local UTF8 = true  -- UTF8 encoding
 
-local M = {}
-
-civ = require'civ'
-
 if UTF8 then local utf8 = require "utf8" end
+local mty = require'metaty'
+local ds = require'ds'
 
--- some local definitions
 
+local M = {}
 local byte, char, yield = string.byte, string.char, coroutine.yield
-
--- esc sequenc ascii:     esc,  O, [,    ~
 local ESC, LETO, LBR, TIL= 27, 79, 91, 126
-
 
 ------------------------------------------------------------------------
 
 local out = io.write
-
 local function outf(...)
   -- write arguments to stdout, then flush.
   io.write(...); io.flush()
@@ -234,54 +227,56 @@ end
 
 ------------------------------------------------------------------------
 -- Fake: a fake terminal for testing
-local FakeTerm = civ.newTy(); M.FakeTerm = FakeTerm
-civ.constructor(FakeTerm, function(ty_, h, w)
+local FakeTerm = mty.rawTy'FakeTerm' M.FakeTerm = FakeTerm
+getmetatable(FakeTerm).__call = function(ty_, h, w)
   local t = setmetatable({}, ty_); FakeTerm.init(t, h, w)
   return t
-end)
-FakeTerm.__index = civ.methIndex
-civ.methods(FakeTerm, {
-  clear=function(t)
-    t:golc(1, 1)
-    for l=1, t.h do
-      local line = {}; for c=1, t.w do line[c] = '' end
-      t[l] = line
-    end
-  end,
-  init=function(t, h, w)
-    t.h, t.w = h, w
-    t:clear()
-  end,
-  golc=function(t, l, c) t.l, t.c = l, c end,
-  cleareol=function(t, l, c)
-    t:assertLC(l, c)
-    local line = t[l]
-    for i=c, t.w do line[i] = '' end
-  end,
-  __tostring=function(t)
-    local out = {}
-    for i, line in ipairs(t) do out[i] = table.concat(line) end
-    return table.concat(out, '\n')
-  end,
-  size=function(t) return t.h, t.w end,
+end
 
-  -- set is the main method used.
-  --
-  set=function(t, l, c, char)
-    t:assertLC(l, c)
-    assert(char); assert(char ~= '')
-    t[l][c] = char
-  end,
+FakeTerm.clear = function(t)
+  t:golc(1, 1)
+  for l=1, t.h do
+    local line = {}; for c=1, t.w do line[c] = '' end
+    t[l] = line
+  end
+end
 
-  start=function() end,
-  stop=function() end,
+FakeTerm.init = function(t, h, w)
+  t.h, t.w = h, w
+  t:clear()
+end
 
-  -- utility
-  assertLC=function(t, l, c)
-    if 1 > l or l > t.h then error("l OOB: " .. l) end
-    if 1 > c or c > t.w then error("c OOB: " .. c) end
-  end,
-})
+FakeTerm.golc = function(t, l, c) t.l, t.c = l, c end
+FakeTerm.cleareol = function(t, l, c)
+  t:assertLC(l, c)
+  local line = t[l]
+  for i=c, t.w do line[i] = '' end
+end
+
+FakeTerm.__tostring = function(t)
+  local out = {}
+  for i, line in ipairs(t) do out[i] = table.concat(line) end
+  return table.concat(out, '\n')
+end
+
+FakeTerm.size = function(t) return t.h, t.w end
+
+-- set is the main method used.
+--
+FakeTerm.set = function(t, l, c, char)
+  t:assertLC(l, c)
+  assert(char); assert(char ~= '')
+  t[l][c] = char
+end
+
+FakeTerm.start = function() end
+FakeTerm.stop = function() end
+
+-- utility
+FakeTerm.assertLC = function(t, l, c)
+  if 1 > l or l > t.h then error("l OOB: " .. l) end
+  if 1 > c or c > t.w then error("c OOB: " .. c) end
+end
 
 ------------------------------------------------------------------------
 -- Unix: evertying below this is for manipulating a unix terminal
@@ -508,16 +503,16 @@ unix.enterRawMode = function()
       unix.restoremode(SAVED)
       io.stdout = stdout
       io.stderr = stderr
-      pnt('Exited raw mode')
+      mty.pnt('Exited raw mode')
    end,
   }
-  pnt('Entering raw mode, stdout at: ' .. stdoutPath)
+  mty.pnt('Entering raw mode, stdout at: ' .. stdoutPath)
   setmetatable(unix.ATEXIT, atexit)
   io.stdout = stdoutF
   io.stderr = stdoutF
-  pnt('Entering raw mode')
+  mty.pnt('Entering raw mode')
   unix.setrawmode()
-  pnt('Entered raw mode')
+  mty.pnt('Entered raw mode')
 end
 unix.exitRawMode = function()
   local mt = getmetatable(unix.ATEXIT); assert(mt)
@@ -529,27 +524,27 @@ end
 M.UnixTerm = {
   w=-1, h=-1,
   l=-1, c=-1,
-  golc=function(t, l, c)
+  golc = function(t, l, c)
     if t.l == l and t.c == c then return end
     unix.golc(l, c)
     t.l, t.c = l, c
   end,
-  clear=function(t)
+  clear = function(t)
     t.l, t.c = 1, 1
     unix.clear()
   end,
-  cleareol=function(t, l, c)
+  cleareol = function(t, l, c)
     t:golc(l, c)
     unix.cleareol()
   end,
-  size=function(t)
+  size = function(t)
     t.h, t.w = unix.size()
     return t.h, t.w
   end,
-  set=function(t, l, c, char)
+  set = function(t, l, c, char)
     t:golc(l, c)
     io.write(char)
-    c = min(c+1, t.w)
+    c = ds.min(c+1, t.w)
   end,
   start=unix.enterRawMode,
   stop=unix.exitRawMode,

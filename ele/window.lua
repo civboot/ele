@@ -1,8 +1,10 @@
-local civ  = require'civ':grequire()
+local mty = require'metaty'
+local ds = require'ds'
 local T = require'ele.types'
 local term = require'ele.term'
 
 local Window, Edit = T.Window, T.Edit
+local ty = mty.ty
 
 local M = {}
 
@@ -20,7 +22,7 @@ local BufFillerDash = {
 local function isSplitKind(w, kind)
   return ty(w) == Window and w.splitkind == kind
 end
-local SPLIT_KINDS = Set{'h', 'v'}
+local SPLIT_KINDS = ds.Set{'h', 'v'}
 
 -- split the edit horizontally, return the new copied edit
 -- (which will be on the top/left)
@@ -33,7 +35,7 @@ M.splitEdit = function(edit, kind)
     container.splitkind = kind
   end
   local new = edit:copy()
-  table.insert(container, indexOf(container, edit), new)
+  table.insert(container, ds.indexOf(container, edit), new)
   return new
 end
 
@@ -42,7 +44,7 @@ M.replaceView = function(mdl, view, new)
   local container = view.container
   if ty(container) == T.Model then
     container.view = view
-  else container[indexOf(container, view)] = new
+  else container[ds.indexOf(container, view)] = new
   end
   if mdl.edit == view then
     assert(ty(new) == Edit)
@@ -57,7 +59,7 @@ M.viewRemove = function(view)
   while true do
     local c = view.container; if not c then return end
     if ty(c) == T.Model then assert(false) end
-    table.remove(c, indexOf(c, view))
+    table.remove(c, ds.indexOf(c, view))
     view.container = nil
     if #c > 0 then
       if #c == 1 then c.splitkind = nil end
@@ -72,7 +74,7 @@ M.wrapWindow = function(w)
   local container = assert(w.container)
   local wrapped = Window.new(container); wrapped[1] = w
   if ty(container) == T.Model then container.view = wrapped
-  else container[indexOf(container, w)] = wrapped end
+  else container[ds.indexOf(container, w)] = wrapped end
   w.container = wrapped
   return wrapped
 end
@@ -105,7 +107,7 @@ M.focusIndexBestEffort = function(v, i)
 end
 
 M.VIEW_DIRECTIONS = {'left', 'right', 'up', 'down'}
-M.VIEW_DIRECTION_SET = Set(M.VIEW_DIRECTIONS)
+M.VIEW_DIRECTION_SET = ds.Set(M.VIEW_DIRECTIONS)
 
 -- given a view (edit/window) return the siblings (left, right, up, down)
 -- as well as the index
@@ -113,7 +115,7 @@ M.viewSiblings = function(v, sib, hasRecursed)
   local w, sib = v.container, sib or {}
   if ty(w) == T.Model then return sib end
   assert(ty(w) == Window)
-  local i = indexOf(w, v); sib.index = i
+  local i = ds.indexOf(w, v); sib.index = i
   local before, after = w[i - 1], w[i + 1]
   if     w.splitkind == 'v' then
     sib.left, sib.right = before, after
@@ -141,23 +143,22 @@ end
 ---------------------
 -- Window core methods
 
-Window.__index = listIndex
-methods(Window, {
-new=function(container)
+Window.__index = mty.indexUnchecked
+
+Window.new=function(container)
   return Window{
     id=T.nextViewId(),
     container=container,
     tl=-1, tc=-1,
     th=-1, tw=-1,
   }
-end,
-close=function(w)
+end
+Window.close=function(w)
   assert(not w.container, "Window not removed before close")
-end,
-__tostring=function(w)
+end
+Window.__tostring=function(w)
   return string.format('Window[id=%s len=%s]', w.id, #w)
-end,
-})
+end
 
 ----------------------------------
 -- Draw Window
@@ -192,44 +193,43 @@ local function drawSepV(term, l, c, h, sep)
   end
 end
 
-methods(Window, {
 -- return the maximum forced dimension
-forceDimMax=function(w, dimFn)
+Window.forceDimMax=function(w, dimFn)
   local fd = 0; for _, ch in ipairs(w) do
-    fd = max(fd, ch[dimFn](ch))
+    fd = ds.max(fd, ch[dimFn](ch))
   end; return fd
-end,
+end
 -- return the forced dimension and the number of forceDim children
 -- sc: if true, return 0 at first non-forceWidth child
-forceDim=function(w, dimFn, sc)
+Window.forceDim=function(w, dimFn, sc)
   local fd, n = 0, 0; for _, ch in ipairs(w) do
     local d = ch[dimFn](ch)
     if d ~= 0 then n, fd = n + 1, fd + d
     elseif sc then return 0, 0 end
   end; return fd, n
-end,
+end
 forceWidth= function(w)
   if w.kind == 'h' then return w:forceDimMax('forceWidth') end
   return  w:forceDim('forceWidth', true)
-end,
-forceHeight=function(w, dimFn)
+end
+Window.forceHeight=function(w, dimFn)
   if w.splitkind == 'v' then return w:forceDimMax('forceHeight') end
   return  w:forceDim('forceHeight', true)
-end,
+end
 
-period=function(w, size, forceDim, sep)
+Window.period=function(w, size, forceDim, sep)
   assert(#w >= 1); sep = sep * (#w - 1)
   local fd, n = w:forceDim(forceDim, false)
   if fd + sep > size then return 0 end
   local varDim = math.floor((size - fd - sep) / (#w - n))
   return varDim
-end,
+end
 
-draw=function(w, term, isRight)
+Window.draw=function(w, term, isRight)
   assert(#w > 0, "Drawing empty window")
   if not w.splitkind then
     assert(#w == 1)
-    updateKeys(w[1], w, {'tl', 'tc', 'th', 'tw'})
+    ds.updateKeys(w[1], w, {'tl', 'tc', 'th', 'tw'})
     w[1]:draw(term, isRight)
   elseif 'v' == w.splitkind then -- verticle split
     assert(#w > 1)
@@ -238,7 +238,7 @@ draw=function(w, term, isRight)
     for ci, child in ipairs(w) do
       if remain <= 0 then break end
       local isLast = (ci == #w) or (remain <= 1)
-      updateKeys(w[ci], w, {'tl', 'th'}); child.tc = tc
+      ds.updateKeys(w[ci], w, {'tl', 'th'}); child.tc = tc
       tc, remain, w[ci].tw = drawChild(
         isLast, tc, remain, period, #VSEP, child:forceWidth())
       child:draw(term, isRight and isLast)
@@ -253,7 +253,7 @@ draw=function(w, term, isRight)
     for ci, child in ipairs(w) do
       if remain <= 0 then break end
       local isLast = ci == #w
-      updateKeys(child, w, {'tc', 'tw'}); child.tl = tl
+      ds.updateKeys(child, w, {'tc', 'tw'}); child.tl = tl
       tl, remain, child.th = drawChild(
         isLast, tl, remain, period, #HSEP, child:forceHeight())
       child:draw(term, isRight)
@@ -262,7 +262,6 @@ draw=function(w, term, isRight)
       end
     end
   end
-end,
-}) -- END Window methods
+end
 
 return M

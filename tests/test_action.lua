@@ -1,8 +1,12 @@
+METATY_CHECK = true
 
-require'civ':grequire()
-local action = require'ele.action'; local A = action.Actions
+local test, assertEq
+require'metaty'.lrequire'civtest'
 
-test('spaces', nil, function()
+local action = require'ele.action'
+local A = action.Actions
+
+test('spaces', function()
   assertEq(2, action.wantSpaces(1, 2))
   assertEq(1, action.wantSpaces(2, 2))
   assertEq(2, action.wantSpaces(3, 2))

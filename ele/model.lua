@@ -2,11 +2,12 @@
 -- # Model struct
 -- Implements the core app
 
-require'civ':grequire()
-local gap  = require'civ.gap'
-local civix = require'civ.unix'
-local T = require'ele.types'
+local mty = require'metaty'
+local ds = require'ds'
+local civix = require'civix'
 local posix = require'posix'
+local gap  = require'ele.gap'
+local T = require'ele.types'
 local action = require'ele.action'
 local term = require'ele.term'
 local edit = require'ele.edit'
@@ -16,49 +17,50 @@ local data = require'ele.data'
 local window = require'ele.window'
 
 local yld = coroutine.yield
+local concat = table.concat
+local pnt, ty = mty.pnt, mty.ty
 
 local M = {} -- module
 
-local DRAW_PERIOD = Duration(0.03)
+local DRAW_PERIOD = ds.Duration(0.03)
 local MODE = { command='command', insert='insert' }
 local Actions = action.Actions
 local Model, Edit, Buffer, Bindings = T.Model, T.Edit, T.Buffer, T.Bindings
 
-methods(Model, {
-__tostring=function(m)
+Model.__tostring=function(m)
   return string.format('Model[%s %s.%w]', m.mode, m.h, m.w)
-end,
-new=function(term_, inputCo)
+end
+Model.new=function(term_, inputCo)
   local mdl = {
     mode='command',
     h=-1, w=-1,
-    buffers=Map{}, freeBufId=1, freeBufIds=List{},
-    start=Epoch(0), lastDraw=Epoch(0),
+    buffers={}, freeBufId=1, freeBufIds={},
+    start=ds.Epoch(0), lastDraw=ds.Epoch(0),
     bindings=Bindings.default(),
 
     inputCo=inputCo, term=term_,
-    events=LL(),
+    events=ds.LL(),
   }
   mdl = setmetatable(mdl, Model)
   mdl.statusEdit = mdl:newEdit('status')
   mdl.searchEdit = mdl:newEdit('search')
   return mdl
-end,
+end
 -- Call after term is setup
-init=function(m)
-  m.th, m.tw = m.term:size()
+Model.init=function(m)
+  m.h, m.w = m.term:size()
   m:draw()
-end,
+end
 
 -- #####################
 -- # Status
-showStatus=function(self)
+Model.showStatus=function(self)
   local s = self.statusEdit
   if s.container then return end
   window.windowAdd(self.view, s, 'h', false)
   s.fh, s.fw = 1, nil
-end,
-showSearch=function(self)
+end
+Model.showSearch=function(self)
   local s = self.searchEdit; if s.container then return end
   if self.statusEdit.container then -- piggyback on status
     window.windowAdd(self.statusEdit, s, 'v', true)
@@ -67,9 +69,9 @@ showSearch=function(self)
     s.fh, s.fw = 1, nil
   end
   assert(s.container)
-end,
+end
 
-status=function(self, msg, kind)
+Model.status=function(self, msg, kind)
   if type(msg) ~= 'string' then msg = concat(msg) end
   kind = kind and string.format('[%s] ', kind) or '[status] '
   msg = kind .. msg
@@ -77,54 +79,54 @@ status=function(self, msg, kind)
   e:changeStart()
   assert(not msg:find('\n')); e:append(msg)
   pnt('Status: ', msg)
-end,
-spent=function(self)
+end
+Model.spent=function(self)
   return civix.epoch() - self.start
-end,
-loopReturn=function(self)
+end
+Model.loopReturn=function(self)
   -- local spent = self:spent()
   -- if DRAW_PERIOD < spent then
   --   return true
   -- end
   return false
-end,
+end
 
 -- #####################
 -- # Bindings
-getBinding=function(self, key)
+Model.getBinding=function(self, key)
   local b = self.bindings[self.mode]
   if 'string' == type(key) then
     return b[key]
   end
-  return b:getPath(key)
-end,
+  return ds.getPath(b, key)
+end
 
 -- #####################
 -- # Buffers
-nextBufId=function(self, id)
-  id = id or self.freeBufIds:pop()
+Model.nextBufId=function(self, id)
+  id = id or table.remove(self.freeBufIds)
   if not id then id = self.freeBufId; self.freeBufId = id + 1 end
   if self.buffers[id] then error('Buffer already exists: ' .. tostring(id)) end
   return id
-end,
-newBuffer=function(self, id, s)
+end
+Model.newBuffer=function(self, id, s)
   id = self:nextBufId(id)
   local b = Buffer.new(s); b.id = id
   self.buffers[id] = b
   return b
-end,
-closeBuffer=function(self, b)
+end
+Model.closeBuffer=function(self, b)
   local id = b.id; self.buffers[id] = nil
   if type(id) == 'number' then self.freeBufIds:add(id) end
   return b
-end,
-newEdit=function(self, bufId, bufS)
+end
+Model.newEdit=function(self, bufId, bufS)
   return Edit.new(nil, self:newBuffer(bufId, bufS))
-end,
+end
 
 -- #####################
 -- # Windows
-moveFocus=function(self, direction)
+Model.moveFocus=function(self, direction)
   assert(window.VIEW_DIRECTION_SET[direction])
   local sib = window.viewSiblings(self.edit)
   local e = window.focusIndexBestEffort(sib[direction], sib.index)
@@ -132,57 +134,57 @@ moveFocus=function(self, direction)
     assert(ty(e) == T.Edit)
     self.edit = e
   end
-end,
+end
 
 -- #####################
 --   * draw
-draw=function(mdl)
-  mdl.th, mdl.tw = mdl.term:size()
-  update(mdl.view, {tl=1, tc=1, th=mdl.th, tw=mdl.tw})
+Model.draw=function(mdl)
+  mdl.h, mdl.w = mdl.term:size()
+  ds.update(mdl.view, {tl=1, tc=1, th=mdl.h, tw=mdl.w})
   mdl.view:draw(mdl.term, true)
   mdl.edit:drawCursor(mdl.term)
-end,
+end
 
 -- #####################
 --   * update
-unrecognized=function(self, keys)
+Model.unrecognized=function(self, keys)
   self:status('chord: ' .. concat(keys, ' '), 'unset')
-end,
+end
 
-actRaw=function(self, ev)
+Model.actRaw=function(self, ev)
   local act = Actions[ev[1]]
-  if not act then error('unknown action: ' .. tfmt(ev)) end
-  local out = act.fn(self, ev) or List{}
+  if not act then error('unknown action: ' .. mty.fmt(ev)) end
+  local out = act.fn(self, ev) or {}
   return out
-end,
+end
 
-actionHandler=function(self, out, depth)
+Model.actionHandler=function(self, out, depth)
   while #out > 0 do
     local e = table.remove(out); e.depth = (depth or 1) + 1
     self.events:addBack(e)
   end
-end,
+end
 
-update=function(self)
+Model.update=function(self)
   while not self.events:isEmpty() do
     local ev = self.events:popBack();
     if (ev.depth or 1) > 12 then error('event depth: ' .. ev.depth) end
     pnt('Event: ', ev)
     local out = nil
     if self.chain then
-      update(self.chain, ev)
+      ds.update(self.chain, ev)
       ev = self.chain; self.chain = nil
     end
     out = self:actRaw(ev)
-    if ty(out) ~= List then error('action returned non-list: '..tfmt(out)) end
+    if ty(out) ~= 'table' then error('action returned non-list: '..mty.fmt(out)) end
     self:actionHandler(out, ev.depth)
   end
-end,
+end
 -- the main loop
 
 -- #####################
 --   * step: run all pieces
-step=function(self)
+Model.step=function(self)
   local key = self.inputCo()
   self.start = civix.epoch()
   if key == '^C' then
@@ -194,9 +196,9 @@ step=function(self)
   if self.mode == 'quit' then return false end
   self:draw()
   return true
-end,
+end
 
-app=function(self)
+Model.app=function(self)
   pnt('starting app')
   self.term:start()
   self.term:clear()
@@ -206,8 +208,7 @@ app=function(self)
   end
   self.term:stop()
   pnt('\nExited app')
-end,
-}) -- END Model methods
+end
 
 
 -- #####################

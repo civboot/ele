@@ -1,5 +1,5 @@
 package = "ele"
-version = "0.1.0-2"
+version = "0.1.0-3"
 source = {
   url = "git+ssh://git@github.com/civboot/ele.git"
 }
@@ -14,7 +14,13 @@ description = {
 }
 dependencies = {
   "lua ~> 5.3",
-  "civ > 0.1.0",
+  "metaty ~> 0.1",
+  "ds ~> 0.1",
+  "civix ~> 0.1",
+  "luaposix ~> 36.2",
+}
+test_dependencies = {
+  "civtest ~> 0.1",
 }
 build = {
   type = "builtin",
@@ -31,13 +37,6 @@ build = {
     ["ele.term"] = "ele/term.lua",
     ["ele.types"] = "ele/types.lua",
     ["ele.window"] = "ele/window.lua",
-    ["notes.coroutine"] = "notes/coroutine.lua",
-    ["notes.load"] = "notes/load.lua",
-    ["notes.play"] = "notes/play.lua",
-    ["tests.test_buffer"] = "tests/test_buffer.lua",
-    ["tests.test_gap"] = "tests/test_gap.lua",
-    ["tests.test_model"] = "tests/test_model.lua",
-    ["tests.test_motion"] = "tests/test_motion.lua"
   },
   copy_directories = {
     "tests"
