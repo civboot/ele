@@ -1,5 +1,5 @@
 local mty = require'metaty'
-local gap  = require'ele.gap'
+local gap  = require'ed.gap'
 
 local record = mty.record
 

@@ -1,9 +1,9 @@
 local mty = require'metaty'
 local ds = require'ds'
-local gap = require'ele.gap'
+local gap = require'ed.gap'
+local motion = require'ed.motion'
 local T = require'ele.types'
 local term = require'ele.term'
-local motion = require'ele.motion'
 local window = require'ele.window'
 
 local Action = T.Action

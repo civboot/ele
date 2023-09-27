@@ -1,9 +1,9 @@
 -- #####################
 -- # Edit struct
 local ds = require'ds'
-local gap = require'ele.gap'
+local gap = require'ed.gap'
+local motion = require'ed.motion'
 local T = require'ele.types'
-local motion = require'ele.motion'
 local term = require'ele.term'; tunix = term.unix
 local Edit, CursorChange = T.Edit, T.CursorChange
 
