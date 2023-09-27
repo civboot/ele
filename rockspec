@@ -1,5 +1,6 @@
 package = "ele"
-version = "0.1-3"
+version = "0.1-4"
+rockspec_format = "3.0"
 source = {
   url = "git+ssh://git@github.com/civboot/ele.git"
 }
