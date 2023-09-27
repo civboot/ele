@@ -1,11 +1,13 @@
+METATY_CHECK = true
 
-require'civ':grequire()
-grequire'civ.gap'
+local mty = require'metaty'
+local test, assertEq; mty.lrequire'civtest'
+
 local buffer = require'ele.buffer'
 local T = require'ele.types'
 local C, CS = T.Change, T.ChangeStart
 
-test('undoIns', nil, function()
+test('undoIns', function()
   local b = T.Buffer.new(''); local g = b.gap
 
   local ch1 = T.Change{k='ins', s='hello ', l=1, c=1}
@@ -42,7 +44,7 @@ test('undoIns', nil, function()
   assertEq('hello world!', tostring(g))
 end)
 
-test('undoInsRm', nil, function()
+test('undoInsRm', function()
   local b = T.Buffer.new(''); local g, ch = b.gap
   local ch1 = T.Change{k='ins', s='12345\n', l=1, c=1}
   local ch2 = T.Change{k='rm', s='12', l=1, c=1}
@@ -60,7 +62,7 @@ test('undoInsRm', nil, function()
   assertEq('345\n', tostring(g))
 end)
 
-test('undoReal', nil, function() -- undo/redo word deleting
+test('undoReal', function() -- undo/redo word deleting
   local START = "4     It's nice to have some real data"
   local b = T.Buffer.new(START); local g, ch = b.gap
   local ch1 = T.Change{k='rm', s='It',  l=1, c=7}
@@ -78,7 +80,7 @@ test('undoReal', nil, function() -- undo/redo word deleting
   assertEq("4     s nice to have some real data", tostring(g))
 end)
 
-test('undoMulti', nil, function() -- undo/redo across multi lines
+test('undoMulti', function() -- undo/redo across multi lines
   local START = '123\n456\n789\nabc'
   local b = T.Buffer.new(START); local g, ch = b.gap
   assertEq(START, tostring(g))

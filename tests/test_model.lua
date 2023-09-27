@@ -1,5 +1,10 @@
-local civ = require'civ':grequire()
-civ.TESTING = true
+METATY_CHECK = true
+
+local mty = require'metaty'
+local test, assertEq
+mty.lrequire'civtest'
+
+local ds = require'ds'
 local model = require'ele.model'
 local term = require'ele.term'; local tunix = term.unix
 local T = require'ele.types'
@@ -9,31 +14,31 @@ local action = require'ele.action'; A = action.Actions
 
 local add = table.insert
 
-test('keypress', nil, function()
+test('keypress', function()
   assertEq({'a', 'b'},  term.parseKeys('a b'))
   assertEq({'a', '^B'}, term.parseKeys('a ^b'))
   assertEq({'a', '^B'}, term.parseKeys('a ^b'))
   assertEq({'return', '^B'}, term.parseKeys('return ^b'))
 end)
 
-test('ctrl', nil, function()
+test('ctrl', function()
   assertEq('P', term.ctrlChar(16))
 end)
 
 local function mockInputs(inputs)
-  return List(term.parseKeys(inputs))
+  return term.parseKeys(inputs)
 end
 
-test('edit (only)', nil, function()
+test('edit (only)', function()
   local t = term.FakeTerm(1, 4); assert(t)
   local e = T.Edit.new(nil, T.Buffer.new("1234567\n123\n12345\n"))
   e.tl, e.tc, e.th, e.tw = 1, 1, 1, 4
-  e:draw(t, true); assertEq(List{'1234'}, e.canvas)
+  e:draw(t, true); assertEq({'1234'}, e.canvas)
   e.th, e.tw = 2, 4; t:init(2, 4)
   e:draw(t, true)
-  assertEq(List{'1234', '123'}, e.canvas)
+  assertEq({'1234', '123'}, e.canvas)
   e.l, e.vl = 2, 2; e:draw(t, true)
-  assertEq(List{'123', '1234'}, e.canvas)
+  assertEq({'123', '1234'}, e.canvas)
   assertEq("123\n1234", tostring(t))
 end)
 
@@ -41,14 +46,14 @@ local function mockedModel(h, w, s, inputs)
   T.ViewId = 0
   local mdl = T.Model.new(
     term.FakeTerm(h, w),
-    mockInputs(inputs or ''):iterV())
+    ds.iterV(mockInputs(inputs or '')))
   local e = mdl:newEdit(nil, s)
   e.container, mdl.view, mdl.edit = mdl, e, e
   mdl:init()
   return mdl
 end
 
-test('bindings', nil, function()
+test('bindings', function()
   local m = mockedModel(5, 5)
   assertEq(m:getBinding('^U'), {'up', times=15})
   local spc = m:getBinding('space')
@@ -59,12 +64,12 @@ end)
 
 local function testModel(h, w)
   local mdl, status, eTest = model.testModel(
-    term.FakeTerm(h, w), mockInputs(''):iterV())
+    term.FakeTerm(h, w), ds.iterV(mockInputs('')))
   mdl:init()
   return mdl, status, eTest
 end
 
-test('insert', nil, function()
+test('insert', function()
   local m = mockedModel(
     1, 4, -- h, w
     '1234567\n123\n12345\n',
@@ -73,39 +78,39 @@ test('insert', nil, function()
   assertEq('2', m.inputCo())
   local e = m.edit;
   assertEq(1, e.l); assertEq(1, e.c)
-  m:step(); assertEq(List{'1234'}, e.canvas)
+  m:step(); assertEq({'1234'}, e.canvas)
             assertEq(1, e.l); assertEq(1, e.c)
-  m:step(); assertEq(List{'8123'}, e.canvas)
+  m:step(); assertEq({'8123'}, e.canvas)
             assertEq(1, e.l); assertEq(2, e.c)
-  m:step(); assertEq(List{'8912'}, e.canvas)
+  m:step(); assertEq({'8912'}, e.canvas)
             assertEq(1, e.l); assertEq(3, e.c)
 end)
 
-test('back', nil, function()
+test('back', function()
   local m = mockedModel(
     1, 7, -- h, w
     '1234567',
     'i back back x')
   local e = m.edit;
   e.l, e.c = 1, 4 -- '4'
-  m:step(); assertEq(List{'1234567'}, e.canvas) -- i
+  m:step(); assertEq({'1234567'}, e.canvas) -- i
             assertEq(1, e.l); assertEq(4, e.c)
-  m:step(); assertEq(List{'124567'}, e.canvas) -- back
+  m:step(); assertEq({'124567'}, e.canvas) -- back
             assertEq(1, e.l); assertEq(3, e.c)
-  m:step(); assertEq(List{'14567'}, e.canvas)  -- back
+  m:step(); assertEq({'14567'}, e.canvas)  -- back
             assertEq(1, e.l); assertEq(2, e.c)
-  m:step(); assertEq(List{'1x4567'}, e.canvas)
+  m:step(); assertEq({'1x4567'}, e.canvas)
             assertEq(1, e.l); assertEq(3, e.c)
 end)
 
 local function steps(m, num) for _=1, num do m:step() end end
 local function stepKeys(m, keys)
   local inp = mockInputs(keys)
-  m.inputCo = inp:iterV()
+  m.inputCo = ds.iterV(inp)
   for _ in ipairs(inp) do m:step() end
 end
 
-test('move', nil, function()
+test('move', function()
   local m = mockedModel(
     1, 7, -- h, w
     '1234567\n123\n12345',
@@ -118,7 +123,7 @@ test('move', nil, function()
   m:step(); assertEq(3, e.l); assertEq(3, e.c) -- j '3' (l 3)
 
   -- now test boundaries
-  m.inputCo = mockInputs('j $ k l'):iterV() -- down RIGHT up right
+  m.inputCo = ds.iterV(mockInputs('j $ k l')) -- down RIGHT up right
   m:step(); assertEq(3, e.l); assertEq(3, e.c) -- '\n' (l 3 EOF)
   m:step(); assertEq(3, e.l); assertEq(6, e.c) -- '\n' (l 3 EOF)
   m:step(); assertEq(2, e.l); assertEq(6, e.c) -- '\n' (l 2)
@@ -126,14 +131,14 @@ test('move', nil, function()
 
   -- now test insert on overflow
   -- up 3*right down insert-x-
-  m.inputCo = mockInputs('k l l l j i x'):iterV()  -- k l l l
+  m.inputCo = ds.iterV(mockInputs('k l l l j i x'))  -- k l l l
   steps(m, 4); assertEq(1, e.l); assertEq(7, e.c); -- '7' (l 1)
                assertEq(1, e.vl)
   m:step();    assertEq(2, e.l); assertEq(7, e.c); -- j (l2 overflow)
                assertEq(2, e.vl)
   m:step();    assertEq(2, e.l); assertEq(7, e.c); -- i
   m:step();    assertEq({2, 5}, {e.l, e.c}) -- x
-               assertEq(List{'123x'}, e.canvas)
+               assertEq({'123x'}, e.canvas)
 
   -- now test multi-movement
   stepKeys(m, '^J ^U'); assertEq({1, 5}, {e.l, e.c})
@@ -151,7 +156,7 @@ local function splitSetup(m, kind)
   return w, eL, eR
 end
 
-test('splitH', nil, function()
+test('splitH', function()
   local m = mockedModel(
     5, 7, -- h, w
     '1234567\n123')
@@ -167,7 +172,7 @@ test('splitH', nil, function()
 123]], tostring(m.term))
 end)
 
-test('splitV', nil, function()
+test('splitV', function()
   local m = mockedModel(
     2, 20, -- h, w
     '1234567\n123')
@@ -180,7 +185,7 @@ test('splitV', nil, function()
 123      |123]], tostring(m.term))
 end)
 
-test('splitEdit', nil, function()
+test('splitEdit', function()
   local m = mockedModel(
     5, 7, -- h, w
     '1234567\n123')
@@ -204,14 +209,14 @@ bottom]], tostring(m.term))
 end)
 
 
-test('withStatus', nil, function()
+test('withStatus', function()
   local h, w = 9, 16
   local m, status, eTest = testModel(h, w)
   local t = m.term
   m:draw()
   assertEq(eTest, m.edit)
-  assertEq(1, indexOf(m.view, eTest))
-  assertEq(2, indexOf(m.view, status))
+  assertEq(1, ds.indexOf(m.view, eTest))
+  assertEq(2, ds.indexOf(m.view, status))
   assertEq(1, status.fh); assertEq(1, status:forceHeight())
   assertEq(1, m.view:forceDim('forceHeight', false))
   assertEq(7, m.view:period(9, 'forceHeight', 1))
@@ -240,7 +245,7 @@ hi *123456789*12
 [unset] chord: ~]], tostring(t))
 end)
 
-test('moveWord', nil, function()
+test('moveWord', function()
   local m = mockedModel(
     1, 7, -- h, w
     ' bc+12 -de \n  z(45+ 7)')
@@ -264,7 +269,7 @@ end)
 ------------
 -- Test D C modline
 MODLINE_0 = '12345\n8909876'
-test('modLine', nil, function()
+test('modLine', function()
   local m = mockedModel(2, 8, MODLINE_0)
   local e, t = m.edit, m.term
   e.l, e.c = 1, 1
@@ -287,7 +292,7 @@ end)
 ------------
 -- Test d delete
 DEL = '12 34+56\n78+9'
-test('deleteChain', nil, function()
+test('deleteChain', function()
   local m = mockedModel(1, 8, '12 34 567')
   local e, t = m.edit, m.term; e.l, e.c = 1, 1
   stepKeys(m, 'd w'); assertEq(1, e.l); assertEq(1, e.c)
@@ -315,7 +320,7 @@ end)
 
 ------------
 -- Test c delete
-test('change', nil, function()
+test('change', function()
   local m = mockedModel(1, 12, '12 34 567')
   local e, t = m.edit, m.term; e.l, e.c = 1, 4
   stepKeys(m, 'c w'); assertEq(1, e.l); assertEq(4, e.c)
@@ -330,7 +335,7 @@ end)
 ------------
 -- Test /search
 SEARCH_0 = '12345\n12345678\nabcdefg'
-test('modLine', nil, function()
+test('modLine', function()
   local m = mockedModel(3, 9, SEARCH_0)
   local e, t, s, sch = m.edit, m.term, m.statusEdit, m.searchEdit
   e.l, e.c = 1, 1
@@ -376,7 +381,7 @@ assertEq([[
 end)
 
 UNDO_0 = '12345'
-test('undo', nil, function()
+test('undo', function()
   local m = mockedModel(1, 9, UNDO_0)
   local e, t, s, sch = m.edit, m.term, m.statusEdit, m.searchEdit
   assertEq('12345', tostring(t))
@@ -415,7 +420,7 @@ test('undo', nil, function()
 end)
 
 local SPLIT = '1234567\n123'
-test('splitV', nil, function()
+test('splitV', function()
   local m = mockedModel(2, 20, SPLIT)
   local e1 = m.edit; assertEq(e1, m.view)
   stepKeys(m, 'space w V');
@@ -433,7 +438,7 @@ test('splitV', nil, function()
   assert(m.edit == e2) -- edit HAS changed
 end)
 
-test('splitH', nil, function()
+test('splitH', function()
   local m = mockedModel(5, 10, SPLIT)
   local e1 = m.edit; assertEq(e1, m.view)
   stepKeys(m, 'space w H');
@@ -449,7 +454,7 @@ test('splitH', nil, function()
   assert(m.edit == e2) -- edit HAS changed
 end)
 
-test('splitStatus', nil, function()
+test('splitStatus', function()
   local m, status, e1 = testModel(6, 10)
   assertEq([[
 *123456789
