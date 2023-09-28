@@ -1,7 +1,6 @@
 local mty = require'metaty'
 local ds = require'ds'
 local T = require'ele.types'
-local term = require'ele.term'
 
 local Window, Edit = T.Window, T.Edit
 local ty = mty.ty

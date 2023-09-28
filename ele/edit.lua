@@ -4,12 +4,11 @@ local ds = require'ds'
 local gap = require'ele.gap'
 local T = require'ele.types'
 local motion = require'ele.motion'
-local term = require'ele.term'; tunix = term.unix
 local Edit, CursorChange = T.Edit, T.CursorChange
 
 local add = table.insert
 
-M = {}
+local M = {}
 
 -- Implements an edit view and state
 Edit.new=function(container, buf)

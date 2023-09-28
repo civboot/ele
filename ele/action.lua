@@ -2,7 +2,7 @@ local mty = require'metaty'
 local ds = require'ds'
 local gap = require'ele.gap'
 local T = require'ele.types'
-local term = require'ele.term'
+local keys = require'ele.keys'
 local motion = require'ele.motion'
 local window = require'ele.window'
 
@@ -122,15 +122,15 @@ Action{
 local function unboundCommand(mdl, keys)
   mdl:unrecognized(keys); return nil, true
 end
-local function unboundInsert(mdl, keys)
+local function unboundInsert(mdl, ks)
   if not mdl.edit then return mdl:status(
     'open a buffer to insert', 'info'
   )end
-  for _, k in ipairs(keys) do
-    if not term.insertKey(k) then
+  for _, k in ipairs(ks) do
+    if not keys.insertKey(k) then
       mdl:unrecognized(k); return nil, true
     else
-      mdl.edit:insert(term.KEY_INSERT[k] or k)
+      mdl.edit:insert(keys.KEY_INSERT[k] or k)
     end
   end
 end
@@ -525,7 +525,7 @@ Action{ name='search', brief='search for pattern',
       e:trailWs()
       return chain(ev, 'chain', {execRawKey='search', search=''})
     end
-    local k = term.insertKey(ev.key)
+    local k = keys.insertKey(ev.key)
     local search = ev.search .. (k or ('<'..ev.key..'>'))
     if ev.key == '^N' then return chain(ev, 'searchPrev')
     elseif k == '\n'  then return chain(ev, 'searchNext')

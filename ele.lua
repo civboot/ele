@@ -1,12 +1,12 @@
 local mty = require'metaty'
-local term = require'ele.term'
+local term = require'civix.term'
 local model = require'ele.model'
 
-M = {}
+local M = {}
 M.main = function()
   local inp = term.unix.input()
   mty.pnt"## Running ('q q' to quit)"
-  local mdl = model.testModel(term.UnixTerm, inp)
+  local mdl = model.testModel(term.Term, inp)
   mdl:app()
 end
 

@@ -33,11 +33,12 @@ build = {
     ["ele.data"] = "ele/data.lua",
     ["ele.edit"] = "ele/edit.lua",
     ["ele.gap"] = "ele/gap.lua",
+    ["ele.keys"] = "ele/keys.lua",
     ["ele.model"] = "ele/model.lua",
     ["ele.motion"] = "ele/motion.lua",
-    ["ele.term"] = "ele/term.lua",
     ["ele.types"] = "ele/types.lua",
     ["ele.window"] = "ele/window.lua",
+    ["ele.FakeTerm"] = "ele/FakeTerm.lua",
   },
   copy_directories = {
     "tests"

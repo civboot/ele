@@ -80,7 +80,6 @@ Gap.__len = function(g) return #g.bot + #g.top end
 Gap.cur = function(g) return g.bot[#g.bot]  end
 
 Gap.get = function(g, l)
-  print('!! get', type(g), type(l), l)
   local bl = #(g.bot)
   if l <= bl then return g.bot[l]
   else return g.top[#g.top - (l - bl) + 1] end
@@ -111,7 +110,6 @@ end
 Gap.offset=function(g, off, l, c)
   local len, m, llen, line = Gap.__len(g)
   -- 0 based index for column
-  print('!! line', l, g:get(l), type(g:get(l)))
   l = bound(l, 1, len); c = bound(c - 1, 0, #g:get(l))
   while off > 0 do
     line = g:get(l)

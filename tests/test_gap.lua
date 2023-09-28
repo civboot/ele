@@ -162,7 +162,6 @@ end)
 test('ipairs', function()
   local g = Gap.new('12345\n6789\n98765\n')
   local t = {}; for i, v in ipairs(g) do
-    mty.pnt('!! i', i, 'v', v)
     assertEq(g[i], g:get(i))
     t[i] = tostring(v)
   end

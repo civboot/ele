@@ -3,7 +3,7 @@
 local mty = require'metaty'
 local ds = require'ds'
 local T = require'ele.types'
-local term = require'ele.term'
+local keys = require'ele.keys'
 local A = require'ele.action'.Actions
 local byte, char = string.byte, string.char
 local ty = mty.ty
@@ -22,7 +22,7 @@ Bindings.new=function()
 end
 Bindings._update=function(b, mode, bindings, checker)
   local bm = b[mode]
-  for keys, act in pairs(bindings) do
+  for ks, act in pairs(bindings) do
     if act then
       if ty(act) == Action then assert(ty(act.fn) == 'function')
       else
@@ -32,16 +32,17 @@ Bindings._update=function(b, mode, bindings, checker)
         )end
       end
     end
-    keys = term.parseKeys(keys)
+    ks = keys.parseKeys(ks)
     if checker then
-      for _, k in ipairs(keys) do checker(k) end
+      for _, k in ipairs(ks) do checker(k) end
     end
-    ds.setPath(bm, keys, act or nil)
+    ds.setPath(bm, ks, act or nil)
   end
 end
 Bindings.updateInsert=function(b, bindings)
   return b:_update('insert', bindings, function(k)
-    if term.insertKey(k) and k ~= 'tab' then error(
+    assert(keys.KEY_INSERT)
+    if keys.insertKey(k) and k ~= 'tab' then error(
       'bound visible in insert mode: '..k
     )end
   end)

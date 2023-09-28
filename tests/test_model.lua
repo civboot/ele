@@ -5,20 +5,22 @@ local test, assertEq
 mty.lrequire'civtest'
 
 local ds = require'ds'
+local keys = require'ele.keys'
 local model = require'ele.model'
-local term = require'ele.term'; local tunix = term.unix
+local term = require'civix.term'
 local T = require'ele.types'
 local window = require'ele.window'
 local data = require'ele.data'
 local action = require'ele.action'; A = action.Actions
+local FakeTerm = require'ele.FakeTerm'
 
 local add = table.insert
 
 test('keypress', function()
-  assertEq({'a', 'b'},  term.parseKeys('a b'))
-  assertEq({'a', '^B'}, term.parseKeys('a ^b'))
-  assertEq({'a', '^B'}, term.parseKeys('a ^b'))
-  assertEq({'return', '^B'}, term.parseKeys('return ^b'))
+  assertEq({'a', 'b'},  keys.parseKeys('a b'))
+  assertEq({'a', '^B'}, keys.parseKeys('a ^b'))
+  assertEq({'a', '^B'}, keys.parseKeys('a ^b'))
+  assertEq({'return', '^B'}, keys.parseKeys('return ^b'))
 end)
 
 test('ctrl', function()
@@ -26,11 +28,11 @@ test('ctrl', function()
 end)
 
 local function mockInputs(inputs)
-  return term.parseKeys(inputs)
+  return keys.parseKeys(inputs)
 end
 
 test('edit (only)', function()
-  local t = term.FakeTerm(1, 4); assert(t)
+  local t = FakeTerm(1, 4); assert(t)
   local e = T.Edit.new(nil, T.Buffer.new("1234567\n123\n12345\n"))
   e.tl, e.tc, e.th, e.tw = 1, 1, 1, 4
   e:draw(t, true); assertEq({'1234'}, e.canvas)
@@ -45,7 +47,7 @@ end)
 local function mockedModel(h, w, s, inputs)
   T.ViewId = 0
   local mdl = T.Model.new(
-    term.FakeTerm(h, w),
+    FakeTerm(h, w),
     ds.iterV(mockInputs(inputs or '')))
   local e = mdl:newEdit(nil, s)
   e.container, mdl.view, mdl.edit = mdl, e, e
@@ -64,7 +66,7 @@ end)
 
 local function testModel(h, w)
   local mdl, status, eTest = model.testModel(
-    term.FakeTerm(h, w), ds.iterV(mockInputs('')))
+    FakeTerm(h, w), ds.iterV(mockInputs('')))
   mdl:init()
   return mdl, status, eTest
 end

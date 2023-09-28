@@ -2,7 +2,7 @@ local mty = require'metaty'
 local min, max, sort2, bound, isWithin
 mty.lrequire'ds'
 
-M = {}
+local M = {}
 local byte, char = string.byte, string.char
 
 -- decrease distance (start -> end) by 1
