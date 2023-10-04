@@ -4,8 +4,10 @@ local model = require'ele.model'
 
 local M = {}
 M.main = function()
-  local inp = term.unix.input()
-  mty.pnt"## Running ('q q' to quit)"
+  local log = io.open('./out/LOG', 'w')
+  local tm = term.Term
+  tm:start(log, log)
+  local inp = term.niceinput(stdout)
   local mdl = model.testModel(term.Term, inp)
   mdl:app()
 end

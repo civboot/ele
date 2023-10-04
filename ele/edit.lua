@@ -91,7 +91,7 @@ Edit.insert=function(e, s)
   e.l, e.c = e.buf.gap:offset(#s, e.l, e.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
-  if (e.l > 1) and (e.c == 1) and ('\n' ~= ds.strLast(s)) then
+  if (e.l > 1) and (e.c == 1) and ('\n' ~= s:sub(#s)) then
     e.l, e.c = e.l - 1, #e.buf.gap:get(e.l - 1) + 1
   end
   e:changeUpdate2()

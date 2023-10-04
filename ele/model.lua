@@ -199,7 +199,6 @@ end
 
 Model.app=function(self)
   pnt('starting app')
-  self.term:start()
   self.term:clear()
   self:init()
   while true do
